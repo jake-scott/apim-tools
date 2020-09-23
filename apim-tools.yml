@@ -1,0 +1,14 @@
+---
+
+logging:
+  location: stderr
+  format: text
+  level: info
+
+auth:
+  client-id: 3086de96-99f3-4bd8-93aa-e94d93540f90
+  client-secret: foo
+  cert-file: t/test.pfx
+  cert-password: password
+  tenant: e552caf9-1e98-4734-af60-c07e3ab443f2
+  subscription: foobarsub
