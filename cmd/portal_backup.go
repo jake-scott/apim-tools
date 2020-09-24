@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -17,12 +15,13 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/jake-scott/apim-tools/internal/pkg/auth"
+	"github.com/jake-scott/apim-tools/internal/pkg/devportal"
 	"github.com/jake-scott/apim-tools/internal/pkg/logging"
 )
 
 var (
 	apimName      string
-	backupDir     string
+	backupFile    string
 	resourceGroup string
 )
 
@@ -42,26 +41,21 @@ var portalBackupCmd = &cobra.Command{
 func init() {
 
 	portalBackupCmd.Flags().StringVar(&apimName, "apim", "", "API Manager instance")
-	portalBackupCmd.Flags().StringVar(&backupDir, "dir", "", "Local backup directory")
+	portalBackupCmd.Flags().StringVar(&backupFile, "out", "", "Output archive")
 	portalBackupCmd.Flags().StringVar(&resourceGroup, "rg", "", "Resource group contianing the APIM instance")
 
 	portalBackupCmd.MarkFlagRequired("apim")
-	portalBackupCmd.MarkFlagRequired("dir")
+	portalBackupCmd.MarkFlagRequired("out")
 	portalBackupCmd.MarkFlagRequired("rg")
 
 	viper.GetViper().BindPFlag("apim", portalBackupCmd.Flags().Lookup("apim"))
-	viper.GetViper().BindPFlag("dir", portalBackupCmd.Flags().Lookup("dir"))
+	viper.GetViper().BindPFlag("out", portalBackupCmd.Flags().Lookup("out"))
 	viper.GetViper().BindPFlag("rg", portalBackupCmd.Flags().Lookup("rg"))
 
 	portalCmd.AddCommand(portalBackupCmd)
 }
 
 func doPortalBackup() error {
-	// Create the backup directory
-	if err := os.MkdirAll(viper.GetString("dir"), 0777); err != nil {
-		return err
-	}
-
 	// Prepare the oauth bits and pieces
 	s := autorest.CreateSender()
 
@@ -75,36 +69,47 @@ func doPortalBackup() error {
 		return err
 	}
 
-	logging.Logger().Infof("Querying instance")
+	// Azure client that decorates the request with API version and access token
+	azClient := NewAzureClient(authz, azureApiVersion)
+
 	// Grab the dev portal and management URLs
-	dpUrl, mgmtUrl, err := getInstancelUrls(authz)
+	logging.Logger().Infof("Querying instance")
+	dpUrl, mgmtUrl, err := getInstancelUrls(azClient)
 	if err != nil {
 		return err
 	}
 	logging.Logger().Debugf("Dev portal URL: %s, Management API URL: %s", dpUrl, mgmtUrl)
 
 	// Get a SAS token for the Administrator user
-	sasToken, err := getSasToken(authz)
+	sasToken, err := getSasToken(azClient)
 	if err != nil {
 		return err
 	}
+
+	// APIM client that decorates the request with API version and SAS token
+	apimClient := NewApimClient(sasToken, azureApiVersion)
 
 	// Get the BLOB storage URL
-	blobUrl, err := getBlobStorageUrl(mgmtUrl, sasToken)
+	blobUrl, err := getBlobStorageUrl(apimClient, mgmtUrl)
 	if err != nil {
 		return err
 	}
-	_ = blobUrl
 
-	// run the backup
-	if err := getPortalMetadata(dpUrl, mgmtUrl, sasToken, authz); err != nil {
+	// Create a ZIP archive
+	aw, err := devportal.NewArchiveWriter(viper.GetString("out"))
+	if err != nil {
 		return err
 	}
 
-	return downloadPortalBlobs(blobUrl)
+	// run the backup
+	if err := getPortalMetadata(aw, apimClient, mgmtUrl); err != nil {
+		return err
+	}
+
+	return downloadPortalBlobs(aw, blobUrl)
 }
 
-func downloadPortalBlobs(blobUrlString string) error {
+func downloadPortalBlobs(aw *devportal.ArchiveWriter, blobUrlString string) error {
 	logging.Logger().Infof("Downloading blobs")
 
 	u, _ := url.Parse(blobUrlString)
@@ -112,6 +117,8 @@ func downloadPortalBlobs(blobUrlString string) error {
 	containerUrl := azblob.NewContainerURL(*u, azblob.NewPipeline(azblob.NewAnonymousCredential(), azblob.PipelineOptions{}))
 
 	var cOK, cErr int
+
+	defer aw.Close()
 
 	for marker := (azblob.Marker{}); marker.NotDone(); {
 		listBlobs, err := containerUrl.ListBlobsFlatSegment(ctx, marker, azblob.ListBlobsSegmentOptions{})
@@ -126,25 +133,12 @@ func downloadPortalBlobs(blobUrlString string) error {
 
 			blobUrl := containerUrl.NewBlobURL(blobInfo.Name)
 
-			fname := filepath.Join(viper.GetString("dir"), blobInfo.Name)
-			fh, err := os.OpenFile(fname, os.O_RDWR|os.O_CREATE, 0666)
-			if err != nil {
+			if err := aw.AddBlob(blobUrl); err != nil {
+				logging.Logger().WithError(err).Errorf("Writing BLOB %s", blobInfo.Name)
 				cErr++
-				logging.Logger().WithError(err).Errorf("Downloading %s", blobInfo.Name)
-				continue
+			} else {
+				cOK++
 			}
-
-			defer fh.Close()
-
-			err = azblob.DownloadBlobToFile(ctx, blobUrl, 0, 0, fh, azblob.DownloadFromBlobOptions{})
-			if err != nil {
-				cErr++
-				logging.Logger().WithError(err).Errorf("Downloading %s", blobInfo.Name)
-				continue
-			}
-
-			cOK++
-			logging.Logger().Infof("Downloaded %s", blobInfo.Name)
 		}
 	}
 
@@ -153,11 +147,11 @@ func downloadPortalBlobs(blobUrlString string) error {
 	return nil
 }
 
-func getPortalMetadata(dpUrl string, mgmtUrl string, token string, authz autorest.Authorizer) error {
+func getPortalMetadata(aw *devportal.ArchiveWriter, cli *ApimClient, mgmtUrl string) error {
 	logging.Logger().Infof("Downloading portal metadata")
 
 	// Get content types used by the portal
-	contentTypes, err := getContentTypes(mgmtUrl, token)
+	contentTypes, err := getContentTypes(cli, mgmtUrl)
 	if err != nil {
 		return err
 	}
@@ -165,7 +159,7 @@ func getPortalMetadata(dpUrl string, mgmtUrl string, token string, authz autores
 	// Get content items for each content type
 	var contentItems = make(map[string]interface{})
 	for _, ct := range contentTypes {
-		subItems, err := getContentItems(mgmtUrl, token, ct)
+		subItems, err := getContentItems(cli, mgmtUrl, ct)
 		if err != nil {
 			return err
 		}
@@ -176,31 +170,38 @@ func getPortalMetadata(dpUrl string, mgmtUrl string, token string, authz autores
 	}
 
 	// Write data.json
-	fname := filepath.Join(viper.GetString("dir"), "data.json")
 	data, err := json.Marshal(contentItems)
 	if err != nil {
 		return err
 	}
 
-	if err := ioutil.WriteFile(fname, data, 0644); err != nil {
+	if err := aw.AddIndex(data); err != nil {
 		return err
 	}
-
-	logging.Logger().Infof("Wrote metadata file: %s", fname)
 
 	return nil
 }
 
 // Get the dev portal and management API URLs for the instance
-func getInstancelUrls(authz autorest.Authorizer) (string, string, error) {
+func getInstancelUrls(cli *AzureClient) (string, string, error) {
 	// Fetch APIM instance details
-	resp, err := azGet(authz, instanceMgmtUrl())
+	resp, err := cli.Get(instanceMgmtUrl())
 	if err != nil {
 		return "", "", err
 	}
 
+	defer resp.Body.Close()
+
+	// Only accept HTTP 2xx codes
+	if resp.StatusCode >= 300 {
+		return "", "", fmt.Errorf("Status %s received", resp.Status)
+	}
+
+	// Grab the body
+	respBody, err := ioutil.ReadAll(resp.Body)
+
 	apim := apimDetails{}
-	if err := json.Unmarshal(resp, &apim); err != nil {
+	if err := json.Unmarshal(respBody, &apim); err != nil {
 		return "", "", err
 	}
 	logging.Logger().Debugf("APIM: %+v", apim)
@@ -222,7 +223,7 @@ func getInstancelUrls(authz autorest.Authorizer) (string, string, error) {
 }
 
 // Get a Shared Access token for use with the APIM management API
-func getSasToken(authz autorest.Authorizer) (string, error) {
+func getSasToken(cli *AzureClient) (string, error) {
 	// Request a token valid for 30 minutes
 	expTime := time.Now().Add(time.Minute * tokenValidityPeriod)
 
@@ -235,13 +236,23 @@ func getSasToken(authz autorest.Authorizer) (string, error) {
 
 	// User 'name' 1 is Administrator
 	sasReqUrl := fmt.Sprintf("%s/users/1/token", instanceMgmtUrl())
-	resp, err := azPost(authz, sasReqUrl, tr)
+	resp, err := cli.Post(sasReqUrl, tr)
 	if err != nil {
 		return "", err
 	}
 
+	defer resp.Body.Close()
+
+	// Only accept HTTP 2xx codes
+	if resp.StatusCode >= 300 {
+		return "", fmt.Errorf("Status %s received", resp.Status)
+	}
+
+	// Grab the body
+	respBody, err := ioutil.ReadAll(resp.Body)
+
 	tokenResp := apimTokenRequestResponse{}
-	if err := json.Unmarshal(resp, &tokenResp); err != nil {
+	if err := json.Unmarshal(respBody, &tokenResp); err != nil {
 		return "", err
 	}
 
@@ -250,15 +261,23 @@ func getSasToken(authz autorest.Authorizer) (string, error) {
 }
 
 // Get the BLOB storage URL for the instance
-func getBlobStorageUrl(mgmtUrl string, token string) (string, error) {
+func getBlobStorageUrl(cli *ApimClient, mgmtUrl string) (string, error) {
 	reqUrl := fmt.Sprintf("%s/portalSettings/mediaContent/listSecrets", apimMgmtUrl(mgmtUrl))
-	resp, err := mgmtRequest("POST", token, reqUrl, nil)
+	resp, err := cli.Post(reqUrl, nil)
 	if err != nil {
 		return "", err
 	}
 
+	// Only accept HTTP 2xx codes
+	if resp.StatusCode >= 300 {
+		return "", fmt.Errorf("Status %s received", resp.Status)
+	}
+
+	// Grab the body
+	respBody, err := ioutil.ReadAll(resp.Body)
+
 	secretsResp := apimListSecretsResponse{}
-	if err := json.Unmarshal(resp, &secretsResp); err != nil {
+	if err := json.Unmarshal(respBody, &secretsResp); err != nil {
 		return "", err
 	}
 
@@ -267,15 +286,23 @@ func getBlobStorageUrl(mgmtUrl string, token string) (string, error) {
 }
 
 // Get a list of supported content types from the portal
-func getContentTypes(mgmtUrl string, token string) ([]string, error) {
+func getContentTypes(cli *ApimClient, mgmtUrl string) ([]string, error) {
 	reqUrl := fmt.Sprintf("%s/contentTypes", apimMgmtUrl(mgmtUrl))
-	resp, err := mgmtRequest("GET", token, reqUrl, nil)
+	resp, err := cli.Get(reqUrl)
 	if err != nil {
 		return nil, err
 	}
 
+	// Only accept HTTP 2xx codes
+	if resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("Status %s received", resp.Status)
+	}
+
+	// Grab the body
+	respBody, err := ioutil.ReadAll(resp.Body)
+
 	ctResp := apimPortalContentTypesResponse{}
-	if err := json.Unmarshal(resp, &ctResp); err != nil {
+	if err := json.Unmarshal(respBody, &ctResp); err != nil {
 		return nil, err
 	}
 
@@ -291,15 +318,23 @@ func getContentTypes(mgmtUrl string, token string) ([]string, error) {
 }
 
 // Get a list of content items for a given content type
-func getContentItems(mgmtUrl string, token string, contentType string) (map[string]interface{}, error) {
+func getContentItems(cli *ApimClient, mgmtUrl string, contentType string) (map[string]interface{}, error) {
 	reqUrl := fmt.Sprintf("%s/contentTypes/%s/contentItems", apimMgmtUrl(mgmtUrl), contentType)
-	resp, err := mgmtRequest("GET", token, reqUrl, nil)
+	resp, err := cli.Get(reqUrl)
 	if err != nil {
 		return nil, err
 	}
 
+	// Only accept HTTP 2xx codes
+	if resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("Status %s received", resp.Status)
+	}
+
+	// Grab the body
+	respBody, err := ioutil.ReadAll(resp.Body)
+
 	ciResp := apimPortalContentItemsResponse{}
-	if err := json.Unmarshal(resp, &ciResp); err != nil {
+	if err := json.Unmarshal(respBody, &ciResp); err != nil {
 		return nil, err
 	}
 
