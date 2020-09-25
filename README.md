@@ -1,0 +1,199 @@
+# API Manager Tools
+
+## Description
+
+Tooling to manage and maintain Azure API Manager instances.
+
+The only functions implemented so far are download, upload and reset for the New (open source)
+Developer Portal.
+
+## Installation
+
+Either install from source :
+
+
+    $ git clone https://github.com/jake-scott/apim-tools.git
+    $ cd apim-tools
+    $ go install
+
+
+or have Go install it for you :
+
+    $ go get -u github.com/jake-scott/apim-tools
+
+The binary will be installed as `$GOPATH/bin/apim-tools` (usually ~/go/bin/apim-tools).
+
+
+## Configuration
+
+The tools will optionally read a configuration file.  The default location is `~/.apim-tools.yml`, though
+that can be overridden with the `--config` option.
+
+Two sections are supported:
+
+### Logging
+
+By default, log entries are sent to stderr in text mode and info level.  These defaults can be overridden
+in the config file, eg :
+
+```yaml
+logging:
+  location: stderr
+  format: text
+  level: info
+```
+
+.. where:
+
+   *  _location_ may be stderr, stdout or the name of a file.
+   *  _format_ may be text or json
+   *  _level_ may be one of fatal, error, warn, info, debug or trace
+
+Debug mode can also be enabled per execution with the `--debug` flag
+
+## Authentication
+
+The tools make use of Hashicorp's excellent Azure authentication wrappers.  That means
+that they support the use of several ways to obtain credentials out of the box.
+
+### From the `az` CLI tool
+
+First install the [Azure CLI tools ](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest), then authenticate :
+
+    $ shell
+    $ az login
+
+Follow the prompts to authenticate using the browser, and the CLI will stash tokens in `~/.azure` that
+apim-tools can use.  Only the `--subsctiption` authentication option needs to be supplied when running apim-tools.
+
+### Using a Service Principal
+
+An service principal can be used with a client-secret or certificate.  Certificates should be supplied as a PKCS12 bundle that includes the certificate and private key, and the file must have a `.pfx` extension.
+
+**Using a client secret:**
+
+   * Command line options `--client-id`, `--client-secret` and `--tenant`
+
+or
+   * Configuration file options:
+
+```yaml
+auth:
+  client-id: e1f509c4-7c0d-4d0f-a504-2ae30928fa59
+  client-secret: someVerySecretValue
+  tenant: myapis.onmicrosoft.com
+```
+
+**Using a client certificate:**
+
+   * Command line options `--client-id`, `--cert-file`, `--cert-password` and `--tenant`
+
+or
+   * Configuration file options:
+
+```yaml
+auth:
+  client-id: e1f509c4-7c0d-4d0f-a504-2ae30928fa59
+  cert-file: /etc/pkitls/private/az.pfx
+  cert-password: somePassword
+  tenant: myapis.onmicrosoft.com
+```
+
+## Downloading the portal contents
+
+The `devportal download` command can be used to dump the Developer Portal contents to a 
+Zip archive. The archive includes JSON data describing the structure and text content, and all
+of the binary media stored in the Developer Portal's storage account.
+
+The following options are required:
+
+   * `--apim` The name of the API Manager instance
+   * `--rg`  The name of the Azure resource group containing the API Manager instance
+   * `--out`  The name of the Zip archive to write
+
+For example:
+
+```console
+$ apim-tools  devportal download --subscription 1d6ff69a-30cb-48ff-9cf9-aa128c4d62d2  --apim myapim --rg prodrg --out /var/tmp/apim.zip
+Using config file: /home/jacob/.apim-tools.yml
+INFO[0000] Querying instance                             exe=apim-tools instance=ab67d3d0-1f19-4bab-bcbc-ba20adab2291 pid=529309
+INFO[0001] Downloading portal metadata                   exe=apim-tools instance=ab67d3d0-1f19-4bab-bcbc-ba20adab2291 pid=529309
+INFO[0001] Downloading blobs                             exe=apim-tools instance=ab67d3d0-1f19-4bab-bcbc-ba20adab2291 pid=529309
+INFO[0002] Got 15 blobs, 0 errors                        exe=apim-tools instance=ab67d3d0-1f19-4bab-bcbc-ba20adab2291 pid=529309
+
+```
+
+The ZIP file can be explored using standard tools including Windows explorer or [the Linux unzip utility](http://www.info-zip.org/UnZip.html) :
+
+```console
+$ unzip -l /var/tmp/apim.zip
+Archive:  /var/tmp/apim.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+    84458  09-24-2020 21:31   data.json
+    32476  09-24-2020 21:31   180ffbc0-507a-4c46-a8f7-a74c8a4b1e9d
+    32476  09-24-2020 21:31   2c26202c-7b55-4b28-b1c1-0bb54f3238d1
+    32476  09-24-2020 21:31   2c60863c-3e9c-4d7b-a33b-1cfb354fd17b
+    32476  09-24-2020 21:31   588b2ad9-352f-457e-81a6-4ddc5f3b53c1
+    32476  09-24-2020 21:31   5bada4c4-6713-44ae-9936-df6aa9d86796
+    32476  09-24-2020 21:31   8e8a3cc7-d0ff-4d6e-9bd4-fd5ef95982a1
+    32476  09-24-2020 21:31   9f4c5b14-da6f-4254-ba11-756dc6cd43f8
+    32476  09-24-2020 21:31   a50fefae-ac53-4595-9be0-059414500c7a
+    32476  09-24-2020 21:31   a6e2835c-2c4d-4cbb-849b-235d1b10a0b1
+    32476  09-24-2020 21:31   b0b4e26d-c719-3720-c37c-cd4ec9f28657
+    32476  09-24-2020 21:31   bc8b66d0-eead-434e-b6a9-ccbe2bdfe581
+    32476  09-24-2020 21:31   e249134e-0035-4a78-9dbb-f1acde5206a5
+    32476  09-24-2020 21:31   e6816975-c9bc-44e5-8e3b-199db256465f
+    32476  09-24-2020 21:31   e6df3446-e2cd-4267-bd43-71dd1165eb04
+    32476  09-24-2020 21:31   f05c2d24-49cc-49fe-b3d6-36ab607372fb
+---------                     -------
+   571598                     16 files
+```
+
+## Uploading the portal contents
+
+The `devportal upload` command can be used to restore a previously downloaded Developer Portal 
+archive.
+
+The following options are required:
+
+   * `--apim` The name of the API Manager instance
+   * `--rg`  The name of the Azure resource group containing the API Manager instance
+   * `--in`  The name of the Zip archive to upload
+
+For example:
+
+```console
+$ apim-tools  devportal upload ---subscription 1d6ff69a-30cb-48ff-9cf9-aa128c4d62d2  --apim myapim --rg prodrg  --in /var/tmp/apim.zip
+Using config file: /home/jacob/.apim-tools.yml
+INFO[0000] Querying instance                             exe=apim-tools instance=d7b40af0-6f7a-40c3-9470-0346e3410efb pid=529447
+INFO[0001] Processing 52 content items                   exe=apim-tools instance=d7b40af0-6f7a-40c3-9470-0346e3410efb pid=529447
+INFO[0010] Uploaded 52 content items, 0 errors           exe=apim-tools instance=d7b40af0-6f7a-40c3-9470-0346e3410efb pid=529447
+INFO[0011] Processed 16 files, 0 skipped, 0 errors       exe=apim-tools instance=d7b40af0-6f7a-40c3-9470-0346e3410efb pid=529447
+
+```
+
+**NOTE**: Despite the help warning, the tool does not currently erase the portal contents before the
+upload.  It is reccomended to explicity run `devportal reset` before uploading the contents until
+this is addressed.
+
+## Erasing the portal contents
+
+The `devportal reset` command will delete all content and media from the Developer Portal.
+
+The following options are required:
+
+   * `--apim` The name of the API Manager instance
+   * `--rg`  The name of the Azure resource group containing the API Manager instance
+
+For example:
+
+```console
+$ apim-tools  devportal reser ---subscription 1d6ff69a-30cb-48ff-9cf9-aa128c4d62d2  --apim myapim --rg prodrg
+Using config file: /home/jacob/.apim-tools.yml
+INFO[0000] Querying instance                             exe=apim-tools instance=36104842-9a06-44dd-baed-e591ec427901 pid=529578
+INFO[0002] Deleting portal content items                 exe=apim-tools instance=36104842-9a06-44dd-baed-e591ec427901 pid=529578
+INFO[0005] Deleted 52 content items, 0 errors            exe=apim-tools instance=36104842-9a06-44dd-baed-e591ec427901 pid=529578
+INFO[0005] Deleting blobs                                exe=apim-tools instance=36104842-9a06-44dd-baed-e591ec427901 pid=529578
+INFO[0006] Deleted 15 blobs, 0 errors                    exe=apim-tools instance=36104842-9a06-44dd-baed-e591ec427901 pid=529578
+```

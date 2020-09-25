@@ -16,7 +16,6 @@ import (
  *  Provides request and diagnostics logging facilities
  */
 
-// Implementation of Log for the audit/request log
 type logger struct {
 	logger  *logrus.Entry
 	logFile *os.File
@@ -47,7 +46,7 @@ func init() {
 
 func Configure(cfg *viper.Viper) error {
 	// Configure system log location
-	switch loc := cfg.GetString("location"); loc {
+	switch loc := cfg.GetString("logging.location"); loc {
 	case "stdout":
 		logrus.SetOutput(os.Stdout)
 	case "stderr":
@@ -70,7 +69,7 @@ func Configure(cfg *viper.Viper) error {
 
 	// Obey the level setting in the config if not already in debug mode
 	if !logrus.IsLevelEnabled(logrus.DebugLevel) {
-		level := cfg.GetString("level")
+		level := cfg.GetString("logging.level")
 		val, err := logrus.ParseLevel(level)
 		if err == nil {
 			logrus.SetLevel(val)
@@ -79,7 +78,7 @@ func Configure(cfg *viper.Viper) error {
 		}
 	}
 
-	format := cfg.GetString("format")
+	format := cfg.GetString("logging.format")
 	if format == "json" {
 		logrus.SetFormatter(&logrus.JSONFormatter{})
 	}

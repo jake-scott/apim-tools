@@ -109,7 +109,7 @@ func doConfigure(cmd *cobra.Command, args []string) error {
 	}
 
 	// Initialize logging
-	if err := logging.Configure(viper.Sub("logging")); err != nil {
+	if err := logging.Configure(viper.GetViper()); err != nil {
 		return err
 	}
 

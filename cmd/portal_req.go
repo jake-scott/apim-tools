@@ -25,7 +25,7 @@ type apimTokenRequest struct {
 
 // response from ApiManagementUserToken request
 type apimTokenRequestResponse struct {
-	Value string `json:"value`
+	Value string `json:"value"`
 }
 
 // response from the listSecrets request
@@ -45,10 +45,10 @@ type apimPortalContentType struct {
 
 // response from the contentItems portal reqiest
 type apimPortalContentItemsResponse struct {
-	Value []map[string]interface{} `json:"value"`
+	Value []interface{} `json:"value"`
 }
 
-// we only need the Id for now
-type apimPortalContentItem struct {
-	Id string `json:"id"`
+// response from the contentItems portal reqiest but as a map
+type apimPortalContentItemsResponseMap struct {
+	Value []map[string]interface{} `json:"value"`
 }

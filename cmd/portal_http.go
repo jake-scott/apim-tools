@@ -9,6 +9,7 @@ import (
 	"net/url"
 
 	"github.com/Azure/go-autorest/autorest"
+	"github.com/jake-scott/apim-tools/internal/pkg/auth"
 	"github.com/jake-scott/apim-tools/internal/pkg/logging"
 	"github.com/spf13/viper"
 )
@@ -104,11 +105,24 @@ type AzureClient struct {
 	apiVersion string
 }
 
-func NewAzureClient(authz autorest.Authorizer, apiVersion string) *AzureClient {
+func NewAzureClient(apiVersion string) (*AzureClient, error) {
+	// Prepare the oauth bits and pieces
+	s := autorest.CreateSender()
+
+	oauthConfig, err := auth.Get().BuildOAuthConfig(azureLoginEndpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	authz, err := auth.Get().GetAuthorizationToken(s, oauthConfig, azureManagementEndpoint)
+	if err != nil {
+		return nil, err
+	}
+
 	return &AzureClient{
 		authz:      authz,
 		apiVersion: apiVersion,
-	}
+	}, nil
 }
 
 func (c *AzureClient) GetClient() *http.Client {
