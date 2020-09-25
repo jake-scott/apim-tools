@@ -3,12 +3,14 @@ package devportal
 import (
 	"archive/zip"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"time"
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
 	"github.com/jake-scott/apim-tools/internal/pkg/logging"
+	"github.com/spf13/viper"
 )
 
 type ArchiveWriter struct {
@@ -19,8 +21,18 @@ type ArchiveWriter struct {
 // Caller MUST run Close() on the ArchiveWriter or data will be lost
 //
 func NewArchiveWriter(filename string) (*ArchiveWriter, error) {
-	fh, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0666)
+	openFlags := os.O_RDWR | os.O_CREATE
+	if viper.GetBool("force") {
+		openFlags |= os.O_TRUNC
+	} else {
+		openFlags |= os.O_EXCL
+	}
+
+	fh, err := os.OpenFile(filename, openFlags, 0666)
 	if err != nil {
+		if os.IsExist(err) {
+			err = fmt.Errorf("%s.  Use --force to overwrite existing file.", err)
+		}
 		return nil, err
 	}
 
@@ -66,7 +78,7 @@ func (a *ArchiveWriter) AddBlob(url azblob.BlobURL) error {
 	return nil
 }
 
-func (a *ArchiveWriter) AddIndex(data []byte) error {
+func (a *ArchiveWriter) AddContentItems(data []byte) error {
 	// Zip header for this file
 	header := zip.FileHeader{
 		Name:     "data.json",
@@ -84,7 +96,7 @@ func (a *ArchiveWriter) AddIndex(data []byte) error {
 		return err
 	}
 
-	logging.Logger().Debugf("Wrote metadata to ZIP, %d bytes", n)
+	logging.Logger().Debugf("Wrote content items to ZIP, %d bytes", n)
 
 	return nil
 }

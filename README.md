@@ -111,16 +111,27 @@ The following options are required:
    * `--rg`  The name of the Azure resource group containing the API Manager instance
    * `--out`  The name of the Zip archive to write
 
+The following options are optional:
+   * `--force`  Overwrite an existing archive (default: false)
+
 For example:
 
 ```console
 $ apim-tools  devportal download --subscription 1d6ff69a-30cb-48ff-9cf9-aa128c4d62d2  --apim myapim --rg prodrg --out /var/tmp/apim.zip
 Using config file: /home/jacob/.apim-tools.yml
-INFO[0000] Querying instance                             exe=apim-tools instance=ab67d3d0-1f19-4bab-bcbc-ba20adab2291 pid=529309
-INFO[0001] Downloading portal metadata                   exe=apim-tools instance=ab67d3d0-1f19-4bab-bcbc-ba20adab2291 pid=529309
-INFO[0001] Downloading blobs                             exe=apim-tools instance=ab67d3d0-1f19-4bab-bcbc-ba20adab2291 pid=529309
-INFO[0002] Got 15 blobs, 0 errors                        exe=apim-tools instance=ab67d3d0-1f19-4bab-bcbc-ba20adab2291 pid=529309
-
+INFO[0000] Querying instance
+INFO[0001] Processing content items...
+INFO[0001]   -> 16 page items
+INFO[0002]   -> 22 document items
+INFO[0002]   -> 2 layout items
+INFO[0002]   -> 0 blogpost items
+INFO[0002]   -> 6 blob items
+INFO[0002]   -> 4 url items
+INFO[0002]   -> 0 navigation items
+INFO[0002]   -> 1 block items
+INFO[0002]   -> Total 51 items
+INFO[0002] Downloading media...
+INFO[0003]   -> Total 1 blobs, 0 errors
 ```
 
 The ZIP file can be explored using standard tools including Windows explorer or [the Linux unzip utility](http://www.info-zip.org/UnZip.html) :
@@ -161,16 +172,22 @@ The following options are required:
    * `--rg`  The name of the Azure resource group containing the API Manager instance
    * `--in`  The name of the Zip archive to upload
 
+The following options are optional:
+
+   * `--nodelete` Skip deletion of items that exist on the portal but are not present in the archive
+
+
 For example:
 
 ```console
 $ apim-tools  devportal upload ---subscription 1d6ff69a-30cb-48ff-9cf9-aa128c4d62d2  --apim myapim --rg prodrg  --in /var/tmp/apim.zip
 Using config file: /home/jacob/.apim-tools.yml
-INFO[0000] Querying instance                             exe=apim-tools instance=d7b40af0-6f7a-40c3-9470-0346e3410efb pid=529447
-INFO[0001] Processing 52 content items                   exe=apim-tools instance=d7b40af0-6f7a-40c3-9470-0346e3410efb pid=529447
-INFO[0010] Uploaded 52 content items, 0 errors           exe=apim-tools instance=d7b40af0-6f7a-40c3-9470-0346e3410efb pid=529447
-INFO[0011] Processed 16 files, 0 skipped, 0 errors       exe=apim-tools instance=d7b40af0-6f7a-40c3-9470-0346e3410efb pid=529447
-
+INFO[0000] Querying instance
+INFO[0000] Processing 51 content items
+INFO[0011]   -> Total 51 items, 0 errors
+INFO[0011] Processed 1 media blobs, 0 skipped, 0 errors
+INFO[0011] Deleted 6 extra media blobs, 0 errors
+INFO[0012] Deleted 1 extra content items, 0 errors
 ```
 
 **NOTE**: Despite the help warning, the tool does not currently erase the portal contents before the
@@ -189,11 +206,27 @@ The following options are required:
 For example:
 
 ```console
-$ apim-tools  devportal reser ---subscription 1d6ff69a-30cb-48ff-9cf9-aa128c4d62d2  --apim myapim --rg prodrg
+$ apim-tools  devportal reset ---subscription 1d6ff69a-30cb-48ff-9cf9-aa128c4d62d2  --apim myapim --rg prodrg
 Using config file: /home/jacob/.apim-tools.yml
-INFO[0000] Querying instance                             exe=apim-tools instance=36104842-9a06-44dd-baed-e591ec427901 pid=529578
-INFO[0002] Deleting portal content items                 exe=apim-tools instance=36104842-9a06-44dd-baed-e591ec427901 pid=529578
-INFO[0005] Deleted 52 content items, 0 errors            exe=apim-tools instance=36104842-9a06-44dd-baed-e591ec427901 pid=529578
-INFO[0005] Deleting blobs                                exe=apim-tools instance=36104842-9a06-44dd-baed-e591ec427901 pid=529578
-INFO[0006] Deleted 15 blobs, 0 errors                    exe=apim-tools instance=36104842-9a06-44dd-baed-e591ec427901 pid=529578
+INFO[0000] Querying instance
+INFO[0000] Deleting portal content items
+INFO[0007] Deleted 52 content items, 0 errors
+INFO[0007] Deleting blobs
+INFO[0007] Deleted 7 blobs, 0 errors
+```
+
+## Publishing the portal ##
+
+The `devportal publish` command will publish the Developer Portal contents.
+
+The following options are required:
+
+   * `--apim` The name of the API Manager instance
+   * `--rg`  The name of the Azure resource group containing the API Manager instance
+
+For example:
+```console
+$ apim-tools  devportal publish  ---subscription 1d6ff69a-30cb-48ff-9cf9-aa128c4d62d2  --apim myapim --rg prodrg
+INFO[0000] Querying instance
+INFO[0001] Developer portal published
 ```

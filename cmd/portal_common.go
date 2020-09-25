@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"reflect"
 	"time"
 
 	"github.com/jake-scott/apim-tools/internal/pkg/logging"
@@ -14,6 +15,8 @@ var portalCmdOpts struct {
 	apimName      string
 	backupFile    string
 	resourceGroup string
+	force         bool
+	nodelete      bool
 }
 
 // Info we need for portal operations
@@ -163,4 +166,67 @@ func getBlobStorageUrl(cli *ApimClient, mgmtUrl string) (string, error) {
 
 	logging.Logger().Debugf("Blob store SAS URL: %s", secretsResp.Url)
 	return secretsResp.Url, nil
+}
+
+// Return slice a with all items in b removed
+//
+func sliceSubtract(a, b []interface{}) (out []interface{}) {
+	bm := make(map[interface{}]bool)
+	out = make([]interface{}, 0, len(a))
+
+	for _, v := range b {
+		bm[v] = true
+	}
+
+	for _, v := range a {
+		_, ok := bm[v]
+
+		// If 'a' value is not in 'b' we'll keep it
+		if !ok {
+			out = append(out, v)
+		}
+	}
+
+	return
+}
+
+func toInterfaceSlice(slice interface{}) (out []interface{}) {
+	s := reflect.ValueOf(slice)
+	if s.Kind() != reflect.Slice {
+		panic("InterfaceSlice() given a non-slice type")
+	}
+
+	out = make([]interface{}, s.Len())
+
+	for i := 0; i < s.Len(); i++ {
+		out[i] = s.Index(i).Interface()
+	}
+
+	return
+}
+
+// Get a list of content items for a given content type
+func getContentItemsAsMap(cli *ApimClient, mgmtUrl string, contentType string) ([]map[string]interface{}, error) {
+	reqUrl := fmt.Sprintf("%s/contentTypes/%s/contentItems", apimMgmtUrl(mgmtUrl), contentType)
+	resp, err := cli.Get(reqUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	// Only accept HTTP 2xx codes
+	if resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("Status %s received", resp.Status)
+	}
+
+	// Grab the body
+	respBody, err := ioutil.ReadAll(resp.Body)
+
+	ciResp := apimPortalContentItemsResponseMap{}
+	if err := json.Unmarshal(respBody, &ciResp); err != nil {
+		return nil, err
+	}
+
+	logging.Logger().Debugf("%d %s items found", len(ciResp.Value), contentType)
+
+	return ciResp.Value, nil
 }

@@ -23,6 +23,7 @@ type logger struct {
 
 // The one singleton logger
 var g_logger logger
+var g_instanceId string
 
 func Logger() *logrus.Entry {
 	return g_logger.logger
@@ -35,12 +36,12 @@ func init() {
 	viper.SetDefault("logging.level", "info")
 
 	// The app instantiation ID
-	id := uuid.New().String()
+	g_instanceId = uuid.New().String()
 
 	g_logger.logger = logrus.WithFields(logrus.Fields{
 		"pid":      os.Getpid(),
 		"exe":      path.Base(os.Args[0]),
-		"instance": id,
+		"instance": g_instanceId,
 	})
 }
 
@@ -49,8 +50,10 @@ func Configure(cfg *viper.Viper) error {
 	switch loc := cfg.GetString("logging.location"); loc {
 	case "stdout":
 		logrus.SetOutput(os.Stdout)
+		g_logger.logger = logrus.WithFields(logrus.Fields{})
 	case "stderr":
 		logrus.SetOutput(os.Stderr)
+		g_logger.logger = logrus.WithFields(logrus.Fields{})
 	default:
 		file, err := os.OpenFile(loc, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 		if err == nil {
@@ -62,6 +65,13 @@ func Configure(cfg *viper.Viper) error {
 			}
 
 			g_logger.logFile = file
+
+			g_logger.logger = logrus.WithFields(logrus.Fields{
+				"pid":      os.Getpid(),
+				"exe":      path.Base(os.Args[0]),
+				"instance": g_instanceId,
+			})
+
 		} else {
 			return err
 		}

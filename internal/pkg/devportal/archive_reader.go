@@ -42,7 +42,7 @@ func (a *ArchiveReader) Close() error {
 }
 
 func (a *ArchiveReader) Process() error {
-	var cOK, cErr, cSkipped int
+	var cOK, cErr, cSkipped int // blob counts
 
 	for _, f := range a.reader.File {
 
@@ -59,35 +59,32 @@ func (a *ArchiveReader) Process() error {
 
 		defer zrs.Close()
 
-		var skipped bool
+		err = nil
 		switch f.Name {
 		case "data.json":
-			if a.indexHandler == nil {
-				skipped = true
-			} else {
+			if a.indexHandler != nil {
 				err = a.indexHandler(zrs)
 			}
 		default:
 			if a.blobHandler == nil {
-				skipped = true
+				cSkipped++
 			} else {
 				err = a.blobHandler(f.Name, zrs)
+
+				if err == nil {
+					cOK++
+				} else {
+					cErr++
+				}
 			}
 		}
 
-		if err == nil {
-			if skipped {
-				cSkipped++
-			} else {
-				cOK++
-			}
-		} else {
+		if err != nil {
 			logging.Logger().WithError(err).Errorf("Handling file %s", f.Name)
-			cErr++
 		}
 	}
 
-	logging.Logger().Infof("Processed %d files, %d skipped, %d errors", cOK, cSkipped, cErr)
+	logging.Logger().Infof("Processed %d media blobs, %d skipped, %d errors", cOK, cSkipped, cErr)
 
 	return nil
 }

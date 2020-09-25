@@ -2,9 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 
@@ -131,7 +128,7 @@ func resetPortalBlobs(blobUrlString string) error {
 		marker = listBlobs.NextMarker
 
 		for _, blobInfo := range listBlobs.Segment.BlobItems {
-			logging.Logger().Debugf("Found blob: %s", blobInfo.Name)
+			logging.Logger().Debugf("Deleting blob: %s", blobInfo.Name)
 
 			blobUrl := containerUrl.NewBlobURL(blobInfo.Name)
 
@@ -148,30 +145,4 @@ func resetPortalBlobs(blobUrlString string) error {
 	logging.Logger().Infof("Deleted %d blobs, %d errors", cOK, cErr)
 
 	return nil
-}
-
-// Get a list of content items for a given content type
-func getContentItemsAsMap(cli *ApimClient, mgmtUrl string, contentType string) ([]map[string]interface{}, error) {
-	reqUrl := fmt.Sprintf("%s/contentTypes/%s/contentItems", apimMgmtUrl(mgmtUrl), contentType)
-	resp, err := cli.Get(reqUrl)
-	if err != nil {
-		return nil, err
-	}
-
-	// Only accept HTTP 2xx codes
-	if resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("Status %s received", resp.Status)
-	}
-
-	// Grab the body
-	respBody, err := ioutil.ReadAll(resp.Body)
-
-	ciResp := apimPortalContentItemsResponseMap{}
-	if err := json.Unmarshal(respBody, &ciResp); err != nil {
-		return nil, err
-	}
-
-	logging.Logger().Debugf("%d %s items found", len(ciResp.Value), contentType)
-
-	return ciResp.Value, nil
 }

@@ -34,6 +34,7 @@ func init() {
 	portalDownloadCmd.Flags().StringVar(&portalCmdOpts.apimName, "apim", "", "API Manager instance")
 	portalDownloadCmd.Flags().StringVar(&portalCmdOpts.backupFile, "out", "", "Output archive")
 	portalDownloadCmd.Flags().StringVar(&portalCmdOpts.resourceGroup, "rg", "", "Resource group contianing the APIM instance")
+	portalDownloadCmd.Flags().BoolVarP(&portalCmdOpts.force, "force", "f", false, "Overwrite existing archive")
 
 	portalDownloadCmd.MarkFlagRequired("apim")
 	portalDownloadCmd.MarkFlagRequired("out")
@@ -42,6 +43,7 @@ func init() {
 	viper.GetViper().BindPFlag("apim", portalDownloadCmd.Flags().Lookup("apim"))
 	viper.GetViper().BindPFlag("out", portalDownloadCmd.Flags().Lookup("out"))
 	viper.GetViper().BindPFlag("rg", portalDownloadCmd.Flags().Lookup("rg"))
+	viper.GetViper().BindPFlag("force", portalDownloadCmd.Flags().Lookup("force"))
 
 	portalCmd.AddCommand(portalDownloadCmd)
 }
@@ -60,7 +62,7 @@ func doPortalDownload() error {
 	defer aw.Close()
 
 	// run the download
-	if err := getPortalMetadata(aw, info.apimClient, info.apimMgmtUrl); err != nil {
+	if err := getPortalContentItems(aw, info.apimClient, info.apimMgmtUrl); err != nil {
 		return err
 	}
 
@@ -68,7 +70,7 @@ func doPortalDownload() error {
 }
 
 func downloadPortalBlobs(aw *devportal.ArchiveWriter, blobUrlString string) error {
-	logging.Logger().Infof("Downloading blobs")
+	logging.Logger().Infof("Downloading media...")
 
 	u, _ := url.Parse(blobUrlString)
 	ctx := context.Background()
@@ -98,13 +100,13 @@ func downloadPortalBlobs(aw *devportal.ArchiveWriter, blobUrlString string) erro
 		}
 	}
 
-	logging.Logger().Infof("Got %d blobs, %d errors", cOK, cErr)
+	logging.Logger().Infof("  -> Total %d blobs, %d errors", cOK, cErr)
 
 	return nil
 }
 
-func getPortalMetadata(aw *devportal.ArchiveWriter, cli *ApimClient, mgmtUrl string) error {
-	logging.Logger().Infof("Downloading portal metadata")
+func getPortalContentItems(aw *devportal.ArchiveWriter, cli *ApimClient, mgmtUrl string) error {
+	logging.Logger().Infof("Processing content items...")
 
 	// Get content types used by the portal
 	contentTypes, err := getContentTypes(cli, mgmtUrl)
@@ -121,6 +123,7 @@ func getPortalMetadata(aw *devportal.ArchiveWriter, cli *ApimClient, mgmtUrl str
 		}
 
 		contentItems = append(contentItems, subItems...)
+		logging.Logger().Infof("  -> %d %s items", len(subItems), ct)
 	}
 
 	// Write data.json
@@ -129,9 +132,11 @@ func getPortalMetadata(aw *devportal.ArchiveWriter, cli *ApimClient, mgmtUrl str
 		return err
 	}
 
-	if err := aw.AddIndex(data); err != nil {
+	if err := aw.AddContentItems(data); err != nil {
 		return err
 	}
+
+	logging.Logger().Infof("  -> Total %d items", len(contentItems))
 
 	return nil
 }
