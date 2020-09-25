@@ -16,7 +16,6 @@ import (
  *  Provides request and diagnostics logging facilities
  */
 
-// Implementation of Log for the audit/request log
 type logger struct {
 	logger  *logrus.Entry
 	logFile *os.File
