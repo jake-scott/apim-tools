@@ -190,10 +190,6 @@ INFO[0011] Deleted 6 extra media blobs, 0 errors
 INFO[0012] Deleted 1 extra content items, 0 errors
 ```
 
-**NOTE**: Despite the help warning, the tool does not currently erase the portal contents before the
-upload.  It is reccomended to explicity run `devportal reset` before uploading the contents until
-this is addressed.
-
 ## Erasing the portal contents
 
 The `devportal reset` command will delete all content and media from the Developer Portal.
