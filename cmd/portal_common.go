@@ -1,10 +1,13 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/jake-scott/apim-tools/internal/pkg/logging"
@@ -17,6 +20,8 @@ var portalCmdOpts struct {
 	resourceGroup string
 	force         bool
 	nodelete      bool
+	asJson        bool
+	wait          bool
 }
 
 // Info we need for portal operations
@@ -28,6 +33,22 @@ type apimInfo struct {
 	devPortalUrl            string
 	apimMgmtUrl             string
 	apiVersion              string
+}
+
+// Dev portal status
+type portalStatusQueryResult struct {
+	PortalStatus  int    `json:"Status`
+	PortalVersion string `json:"PortalVersion`
+	CodeVersion   string `json:"CodeVersion`
+	Version       string `json:"Version`
+}
+
+// Normalised version of the portal status
+type portalStatusQueryNormalised struct {
+	PortalStatus  int
+	PortalVersion time.Time
+	CodeVersion   string
+	Version       string
 }
 
 func buildApimInfo(apiVersion string) (i *apimInfo, err error) {
@@ -229,4 +250,103 @@ func getContentItemsAsMap(cli *ApimClient, mgmtUrl string, contentType string) (
 	logging.Logger().Debugf("%d %s items found", len(ciResp.Value), contentType)
 
 	return ciResp.Value, nil
+}
+
+// Tests whether the developer portal is deployed or not
+func isDevportalDeployed(url string) (bool, error) {
+	return isDevportalDeployedWithContext(context.Background(), url)
+}
+
+func isDevportalDeployedWithContext(ctx context.Context, url string) (bool, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return false, err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	switch {
+	case resp.StatusCode == 200:
+		return true, nil
+	case resp.StatusCode == 404:
+		return false, nil
+	}
+
+	return false, fmt.Errorf("Unknown dev portal status %d (%s)", resp.StatusCode, resp.StatusCode)
+}
+
+func getDevportalStatus(dpurl string) (status portalStatusQueryNormalised, err error) {
+	return getDevportalStatusWithContext(context.Background(), dpurl)
+}
+
+func getDevportalStatusWithContext(ctx context.Context, dpurl string) (status portalStatusQueryNormalised, err error) {
+	reqUrl := fmt.Sprintf("%s/internal-status-0123456789abcdef", dpurl)
+	req, err := http.NewRequestWithContext(ctx, "GET", reqUrl, nil)
+	if err != nil {
+		return
+	}
+
+	/*
+	 * The dev portal has a bug and often returns a debug HTML response and not
+	   the JSON response its meant to, so retry a few times
+	*/
+	var numRetries int = 3
+	var respBody []byte
+
+	for numRetries > 0 {
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return status, err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != 200 {
+			err = fmt.Errorf("Portal status: got %s", resp.Status)
+			return status, err
+		}
+
+		ct := resp.Header.Get("content-type")
+		if strings.HasPrefix(ct, "application/json") {
+			// Grab the body
+			respBody, err = ioutil.ReadAll(resp.Body)
+			if err != nil {
+				return status, err
+			}
+
+			break
+		}
+
+		logging.Logger().Warnf("Dev portal returned '%s' response, ignoring", ct)
+		time.Sleep(time.Second * 5)
+		numRetries--
+	}
+
+	if numRetries == 0 {
+		err = fmt.Errorf("Too many bad responses received, giving up")
+		return
+	}
+
+	s := portalStatusQueryResult{}
+	if err = json.Unmarshal(respBody, &s); err != nil {
+		return
+	}
+
+	// Normalise the response
+	publishDate, err := parsePublishDate(s.PortalVersion)
+	if err != nil {
+		return
+	}
+
+	status.PortalStatus = s.PortalStatus
+	status.CodeVersion = s.CodeVersion
+	status.Version = s.Version
+	status.PortalVersion = publishDate
+
+	logging.Logger().Debugf("Portal status: %+v", status)
+
+	return
 }

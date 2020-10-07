@@ -1,0 +1,9 @@
+download
+.gnupg
+terraform
+.terraform
+.vscode
+download
+*.swp
+apim-tools
+dev.yml

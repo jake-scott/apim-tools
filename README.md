@@ -220,9 +220,85 @@ The following options are required:
    * `--apim` The name of the API Manager instance
    * `--rg`  The name of the Azure resource group containing the API Manager instance
 
+The following options are optional:
+
+   * `--wait` Wait for the portal publish to complete
+
 For example:
 ```console
 $ apim-tools  devportal publish  ---subscription 1d6ff69a-30cb-48ff-9cf9-aa128c4d62d2  --apim myapim --rg prodrg
 INFO[0000] Querying instance
 INFO[0001] Developer portal published
+```
+
+
+> **_NOTE:_**  The published portal version is represented by a date string that has only minute resolution.  The tool will wait for a minute change if a publish is requesed less than one minute since the previous version.
+
+
+## Display the portal status ##
+
+The `devportal status` command displays the Developer Portal status.
+
+The following options are required:
+
+   * `--apim` The name of the API Manager instance
+   * `--rg`  The name of the Azure resource group containing the API Manager instance
+
+The following options are optional:
+
+   * `--json` Return the status as JSON, for use in scripting
+  
+
+For example:
+```console
+$ apim-tools  devportal status  ---subscription 1d6ff69a-30cb-48ff-9cf9-aa128c4d62d2  --apim myapim --rg prodrg
+INFO[0000] Querying instance                            
+ Is deployed: true
+Published at: 06 Oct 20 21:11 EDT
+Code version: 20200925173036
+     Version: 0.14.1072.0
+```
+
+When an API Manager instance is first deployed, the Developer Portal is not accessible, and _Is deployed_ will be false.  Uploading content and publishing the portal will also deploy the portal.
+
+
+## Display the portal endpoints ##
+
+The `devportal endpoints` command displays the Developer Portal, Management API and Blob Storage endpoints.
+
+The following options are required:
+
+   * `--apim` The name of the API Manager instance
+   * `--rg`  The name of the Azure resource group containing the API Manager instance
+
+The following options are optional:
+
+   * `--json` Return the status as JSON, for use in scripting
+
+
+For example:
+```console
+$ apim-tools  devportal status  ---subscription 1d6ff69a-30cb-48ff-9cf9-aa128c4d62d2  --apim myapim --rg prodrg --json
+INFO[0000] Querying instance                            
+```
+
+## Generate a Shared Access Signature (SAS) token ##
+
+The `devportal sastoken` command generates a SAS token for the Administrator user, for use in scripts making
+use of the Management API.
+
+The following options are required:
+
+   * `--apim` The name of the API Manager instance
+   * `--rg`  The name of the Azure resource group containing the API Manager instance
+
+The following options are optional:
+
+   * `--json` Return the status as JSON, for use in scripting
+
+
+For example:
+```console
+$ apim-tools  devportal sastoken  ---subscription 1d6ff69a-30cb-48ff-9cf9-aa128c4d62d2  --apim myapim --rg prodrg --json
+INFO[0000] Querying instance                            
 ```
