@@ -1,5 +1,11 @@
 # API Manager Tools
 
+![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/jake-scott/apim-tools)![Travis (.org)](https://img.shields.io/travis/jake-scott/apim-tools)
+[![Go Report Card](https://goreportcard.com/badge/github.com/jake-scott/apim-tools?style=flat-square)](https://goreportcard.com/report/github.com/jake-scott/apim-tools)
+![Go Version](https://img.shields.io/badge/go%20version-%3E=1.14-61CFDD.svg?style=flat-square)
+[![PkgGoDev](https://pkg.go.dev/badge/mod/github.com/jake-scott/apim-tools)](https://pkg.go.dev/mod/github.com/jake-scott/apim-tools)
+![GitHub](https://img.shields.io/github/license/jake-scott/apim-tools)
+
 ## Description
 
 Tooling to manage and maintain Azure API Manager instances.
@@ -203,7 +209,6 @@ For example:
 
 ```console
 $ apim-tools  devportal reset ---subscription 1d6ff69a-30cb-48ff-9cf9-aa128c4d62d2  --apim myapim --rg prodrg
-Using config file: /home/jacob/.apim-tools.yml
 INFO[0000] Querying instance
 INFO[0000] Deleting portal content items
 INFO[0007] Deleted 52 content items, 0 errors
@@ -252,7 +257,7 @@ The following options are optional:
 For example:
 ```console
 $ apim-tools  devportal status  ---subscription 1d6ff69a-30cb-48ff-9cf9-aa128c4d62d2  --apim myapim --rg prodrg
-INFO[0000] Querying instance                            
+INFO[0000] Querying instance
  Is deployed: true
 Published at: 06 Oct 20 21:11 EDT
 Code version: 20200925173036
@@ -279,7 +284,12 @@ The following options are optional:
 For example:
 ```console
 $ apim-tools  devportal status  ---subscription 1d6ff69a-30cb-48ff-9cf9-aa128c4d62d2  --apim myapim --rg prodrg --json
-INFO[0000] Querying instance                            
+INFO[0000] Querying instance
+{
+    "blobStorageUrl": "https://apimstjhf1thirmkwiaaa84h.blob.core.windows.net/content?sv=2017-04-17\u0026sr=c\u0026sig=nejJdo%2B4f75%2FkQr1A6I2q1kF9BOaN38IiWgjDGpWjPw%3D\u0026se=2020-10-14T21:32:55Z\u0026sp=rwdl",
+    "devPortalUrl": "https://wibble123.developer.azure-api.net",
+    "managementUrl": "https://wibble123.management.azure-api.net"
+}
 ```
 
 ## Generate a Shared Access Signature (SAS) token ##
@@ -299,6 +309,8 @@ The following options are optional:
 
 For example:
 ```console
-$ apim-tools  devportal sastoken  ---subscription 1d6ff69a-30cb-48ff-9cf9-aa128c4d62d2  --apim myapim --rg prodrg --json
-INFO[0000] Querying instance                            
+$ TOKEN=$(apim-tools  devportal sastoken  ---subscription 1d6ff69a-30cb-48ff-9cf9-aa128c4d62d2  --apim myapim --rg prodrg)
+INFO[0000] Querying instance
+$ echo $TOKEN
+1&202010022203&fl09XywaTtpCa0J6rgFScLlOpnW9sdEaJY9nnud2jFtTjLlMU7dUrBIG+YehDg1XBmyCmmHjyiJGsQwK9Ruqw==
 ```
