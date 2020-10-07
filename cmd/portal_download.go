@@ -30,20 +30,19 @@ var portalDownloadCmd = &cobra.Command{
 }
 
 func init() {
-
 	portalDownloadCmd.Flags().StringVar(&portalCmdOpts.apimName, "apim", "", "API Manager instance")
 	portalDownloadCmd.Flags().StringVar(&portalCmdOpts.backupFile, "out", "", "Output archive")
-	portalDownloadCmd.Flags().StringVar(&portalCmdOpts.resourceGroup, "rg", "", "Resource group contianing the APIM instance")
+	portalDownloadCmd.Flags().StringVar(&portalCmdOpts.resourceGroup, "rg", "", "Resource group containing the APIM instance")
 	portalDownloadCmd.Flags().BoolVarP(&portalCmdOpts.force, "force", "f", false, "Overwrite existing archive")
 
-	portalDownloadCmd.MarkFlagRequired("apim")
-	portalDownloadCmd.MarkFlagRequired("out")
-	portalDownloadCmd.MarkFlagRequired("rg")
+	errPanic(portalDownloadCmd.MarkFlagRequired("apim"))
+	errPanic(portalDownloadCmd.MarkFlagRequired("out"))
+	errPanic(portalDownloadCmd.MarkFlagRequired("rg"))
 
-	viper.GetViper().BindPFlag("apim", portalDownloadCmd.Flags().Lookup("apim"))
-	viper.GetViper().BindPFlag("out", portalDownloadCmd.Flags().Lookup("out"))
-	viper.GetViper().BindPFlag("rg", portalDownloadCmd.Flags().Lookup("rg"))
-	viper.GetViper().BindPFlag("force", portalDownloadCmd.Flags().Lookup("force"))
+	errPanic(viper.GetViper().BindPFlag("apim", portalDownloadCmd.Flags().Lookup("apim")))
+	errPanic(viper.GetViper().BindPFlag("out", portalDownloadCmd.Flags().Lookup("out")))
+	errPanic(viper.GetViper().BindPFlag("rg", portalDownloadCmd.Flags().Lookup("rg")))
+	errPanic(viper.GetViper().BindPFlag("force", portalDownloadCmd.Flags().Lookup("force")))
 
 	portalCmd.AddCommand(portalDownloadCmd)
 }
@@ -156,6 +155,9 @@ func getContentTypes(cli *ApimClient, mgmtUrl string) ([]string, error) {
 
 	// Grab the body
 	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
 
 	ctResp := apimPortalContentTypesResponse{}
 	if err := json.Unmarshal(respBody, &ctResp); err != nil {
@@ -188,6 +190,9 @@ func getContentItems(cli *ApimClient, mgmtUrl string, contentType string) ([]int
 
 	// Grab the body
 	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
 
 	ciResp := apimPortalContentItemsResponse{}
 	if err := json.Unmarshal(respBody, &ciResp); err != nil {

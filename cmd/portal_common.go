@@ -37,10 +37,10 @@ type apimInfo struct {
 
 // Dev portal status
 type portalStatusQueryResult struct {
-	PortalStatus  int    `json:"Status`
-	PortalVersion string `json:"PortalVersion`
-	CodeVersion   string `json:"CodeVersion`
-	Version       string `json:"Version`
+	PortalStatus  int    `json:"Status"`
+	PortalVersion string `json:"PortalVersion"`
+	CodeVersion   string `json:"CodeVersion"`
+	Version       string `json:"Version"`
 }
 
 // Normalised version of the portal status
@@ -51,6 +51,7 @@ type portalStatusQueryNormalised struct {
 	Version       string
 }
 
+//nolint:unparam
 func buildApimInfo(apiVersion string) (i *apimInfo, err error) {
 	i = &apimInfo{apiVersion: apiVersion}
 
@@ -103,6 +104,9 @@ func getInstancelUrls(cli *AzureClient) (string, string, error) {
 
 	// Grab the body
 	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", "", err
+	}
 
 	apim := apimDetails{}
 	if err := json.Unmarshal(respBody, &apim); err != nil {
@@ -154,6 +158,9 @@ func getSasToken(cli *AzureClient) (string, error) {
 
 	// Grab the body
 	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
 
 	tokenResp := apimTokenRequestResponse{}
 	if err := json.Unmarshal(respBody, &tokenResp); err != nil {
@@ -179,6 +186,9 @@ func getBlobStorageUrl(cli *ApimClient, mgmtUrl string) (string, error) {
 
 	// Grab the body
 	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
 
 	secretsResp := apimListSecretsResponse{}
 	if err := json.Unmarshal(respBody, &secretsResp); err != nil {
@@ -241,6 +251,9 @@ func getContentItemsAsMap(cli *ApimClient, mgmtUrl string, contentType string) (
 
 	// Grab the body
 	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
 
 	ciResp := apimPortalContentItemsResponseMap{}
 	if err := json.Unmarshal(respBody, &ciResp); err != nil {
@@ -276,7 +289,7 @@ func isDevportalDeployedWithContext(ctx context.Context, url string) (bool, erro
 		return false, nil
 	}
 
-	return false, fmt.Errorf("Unknown dev portal status %d (%s)", resp.StatusCode, resp.StatusCode)
+	return false, fmt.Errorf("Unknown dev portal status %d (%s)", resp.StatusCode, resp.Status)
 }
 
 func getDevportalStatus(dpurl string) (status portalStatusQueryNormalised, err error) {
@@ -348,5 +361,5 @@ func getDevportalStatusWithContext(ctx context.Context, dpurl string) (status po
 
 	logging.Logger().Debugf("Portal status: %+v", status)
 
-	return
+	return status, err
 }

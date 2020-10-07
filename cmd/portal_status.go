@@ -25,17 +25,16 @@ var portalStatusCmd = &cobra.Command{
 }
 
 func init() {
-
 	portalStatusCmd.Flags().StringVar(&portalCmdOpts.apimName, "apim", "", "API Manager instance")
-	portalStatusCmd.Flags().StringVar(&portalCmdOpts.resourceGroup, "rg", "", "Resource group contianing the APIM instance")
+	portalStatusCmd.Flags().StringVar(&portalCmdOpts.resourceGroup, "rg", "", "Resource group containing the APIM instance")
 	portalStatusCmd.Flags().BoolVarP(&portalCmdOpts.asJson, "json", "j", false, "Return results as JSON")
 
-	portalStatusCmd.MarkFlagRequired("apim")
-	portalStatusCmd.MarkFlagRequired("rg")
+	errPanic(portalStatusCmd.MarkFlagRequired("apim"))
+	errPanic(portalStatusCmd.MarkFlagRequired("rg"))
 
-	viper.GetViper().BindPFlag("apim", portalStatusCmd.Flags().Lookup("apim"))
-	viper.GetViper().BindPFlag("rg", portalStatusCmd.Flags().Lookup("rg"))
-	viper.GetViper().BindPFlag("json", portalStatusCmd.Flags().Lookup("json"))
+	errPanic(viper.GetViper().BindPFlag("apim", portalStatusCmd.Flags().Lookup("apim")))
+	errPanic(viper.GetViper().BindPFlag("rg", portalStatusCmd.Flags().Lookup("rg")))
+	errPanic(viper.GetViper().BindPFlag("json", portalStatusCmd.Flags().Lookup("json")))
 
 	portalCmd.AddCommand(portalStatusCmd)
 }
@@ -54,6 +53,9 @@ func doPortalStatus() error {
 	}
 
 	status, err := getDevportalStatus(info.devPortalUrl)
+	if err != nil {
+		return err
+	}
 	logging.Logger().Debugf("Portal status: %+v", status)
 
 	isDeployed, err := isDevportalDeployed(info.devPortalUrl)
@@ -124,5 +126,4 @@ func parsePublishDate(s string) (t time.Time, err error) {
 	}
 
 	return time.Date(yy, time.Month(mM), dd, hh, mm, 0, 0, time.UTC), nil
-
 }

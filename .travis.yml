@@ -1,12 +1,13 @@
 language: go
+
 go:
   - "1.14.x"
 
-branches:
-  only:
-    - master
+install:
+ - make tools
 
-matrix:
- - name: "make acctest"
-   script: make acctest
+script:
+ - make lint
+ - make build
+ - make acctest
 

@@ -29,15 +29,14 @@ NOTE: THIS OPTION IS DESTRUCTIVE AND CANNOT BE REVERSED.`,
 }
 
 func init() {
-
 	portalResetCmd.Flags().StringVar(&portalCmdOpts.apimName, "apim", "", "API Manager instance")
-	portalResetCmd.Flags().StringVar(&portalCmdOpts.resourceGroup, "rg", "", "Resource group contianing the APIM instance")
+	portalResetCmd.Flags().StringVar(&portalCmdOpts.resourceGroup, "rg", "", "Resource group containing the APIM instance")
 
-	portalResetCmd.MarkFlagRequired("apim")
-	portalResetCmd.MarkFlagRequired("rg")
+	errPanic(portalResetCmd.MarkFlagRequired("apim"))
+	errPanic(portalResetCmd.MarkFlagRequired("rg"))
 
-	viper.GetViper().BindPFlag("apim", portalResetCmd.Flags().Lookup("apim"))
-	viper.GetViper().BindPFlag("rg", portalResetCmd.Flags().Lookup("rg"))
+	errPanic(viper.GetViper().BindPFlag("apim", portalResetCmd.Flags().Lookup("apim")))
+	errPanic(viper.GetViper().BindPFlag("rg", portalResetCmd.Flags().Lookup("rg")))
 
 	portalCmd.AddCommand(portalResetCmd)
 }

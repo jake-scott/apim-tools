@@ -38,6 +38,10 @@ configure_tf() {
     TERRAFORM=${TERRAFORM:-terraform}
 }
 
+configure_tool() {
+    envsubst <${MYDIR}/../t/ci-conf.yml >${TMPDIR}/conf.yml
+}
+
 create_resources() {
     pushd ${TFDIR}
 
@@ -55,15 +59,15 @@ publish_test_site() {
     archive=$1
 
     echo "------- Uploading test portal $archive"
-    ./apim-tools devportal upload \
-        --subscription 0f32bf3b-84fb-487c-81d9-df6ccaae74aa \
+    ${BIN} devportal upload \
+        --config ${TMPDIR}/conf.yml \
         --rg apimtooltest-${RND} \
         --apim test-${RND} \
         --in ${MYDIR}/../t/${archive}  || return 1
 
     echo '------- Publishing portal'
-    ./apim-tools devportal publish \
-        --subscription 0f32bf3b-84fb-487c-81d9-df6ccaae74aa \
+    ${BIN} devportal publish \
+        --config ${TMPDIR}/conf.yml \
         --rg apimtooltest-${RND} \
         --apim test-${RND} \
         --wait || return 1
@@ -73,8 +77,8 @@ publish_test_site() {
 
 test_live_site1() {
     echo '------- Testing the uploaded portal'
-    DPURL=$(./apim-tools devportal endpoints \
-        --subscription 0f32bf3b-84fb-487c-81d9-df6ccaae74aa \
+    DPURL=$(${BIN} devportal endpoints \
+        --config ${TMPDIR}/conf.yml \
         --rg apimtooltest-${RND} \
         --apim test-${RND} \
         --json \
@@ -115,8 +119,8 @@ test_live_site1() {
 
 test_live_site2() {
     echo '------- Testing the uploaded portal'
-    DPURL=$(./apim-tools devportal endpoints \
-        --subscription 0f32bf3b-84fb-487c-81d9-df6ccaae74aa \
+    DPURL=$(${BIN} devportal endpoints \
+        --config ${TMPDIR}/conf.yml \
         --rg apimtooltest-${RND} \
         --apim test-${RND} \
         --json \
@@ -182,9 +186,12 @@ trap cleanup exit
 
 MYDIR=$(dirname $0)
 RND=${RAND:-$(dd if=/dev/urandom count=1 bs=5 2>/dev/null| base32)}
+BIN=${BIN:-$(go env GOPATH)/bin/apim-tools}
 
 configure_tf                 || exit 1
 create_resources             || exit 1
+
+configure_tool               || exit 1
 
 publish_test_site test1.zip  || exit 1
 test_live_site1              || exit 1

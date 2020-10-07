@@ -11,6 +11,7 @@ import (
 
 	"github.com/jake-scott/apim-tools/internal/pkg/auth"
 	"github.com/jake-scott/apim-tools/internal/pkg/logging"
+	"github.com/jake-scott/apim-tools/version"
 )
 
 var (
@@ -34,7 +35,7 @@ const (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "apim-tools",
-	Short: "Azure API Manager tools",
+	Short: "Azure API Manager tools, version " + version.Version,
 
 	PersistentPreRunE: doConfigure,
 	SilenceUsage:      true,
@@ -63,13 +64,13 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&certPass, "cert-password", "", "cert-file passphrase")
 	rootCmd.PersistentFlags().StringVar(&tenant, "tenant", "", "Azure tenant name or ID")
 
-	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
-	viper.BindPFlag("auth.subscription", rootCmd.PersistentFlags().Lookup("subscription"))
-	viper.BindPFlag("auth.client-id", rootCmd.PersistentFlags().Lookup("client-id"))
-	viper.BindPFlag("auth.client-secret", rootCmd.PersistentFlags().Lookup("client-secret"))
-	viper.BindPFlag("auth.cert-file", rootCmd.PersistentFlags().Lookup("cert-file"))
-	viper.BindPFlag("auth.cert-pass", rootCmd.PersistentFlags().Lookup("subscription"))
-	viper.BindPFlag("auth.tenant", rootCmd.PersistentFlags().Lookup("tenant"))
+	errPanic(viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug")))
+	errPanic(viper.BindPFlag("auth.subscription", rootCmd.PersistentFlags().Lookup("subscription")))
+	errPanic(viper.BindPFlag("auth.client-id", rootCmd.PersistentFlags().Lookup("client-id")))
+	errPanic(viper.BindPFlag("auth.client-secret", rootCmd.PersistentFlags().Lookup("client-secret")))
+	errPanic(viper.BindPFlag("auth.cert-file", rootCmd.PersistentFlags().Lookup("cert-file")))
+	errPanic(viper.BindPFlag("auth.cert-pass", rootCmd.PersistentFlags().Lookup("subscription")))
+	errPanic(viper.BindPFlag("auth.tenant", rootCmd.PersistentFlags().Lookup("tenant")))
 }
 
 func er(msg interface{}) {
@@ -118,4 +119,10 @@ func doConfigure(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+func errPanic(err error) {
+	if err != nil {
+		panic(err)
+	}
 }

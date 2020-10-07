@@ -3,7 +3,6 @@ package cmd
 import "testing"
 
 func sliceEq(a, b []interface{}) bool {
-
 	// If one is nil, the other must also be nil.
 	if (a == nil) != (b == nil) {
 		return false
@@ -77,5 +76,4 @@ func TestSliceSubtract(t *testing.T) {
 			t.Errorf("Got %+v, wanted %+v", c, tt.want)
 		}
 	}
-
 }
