@@ -1,10 +1,11 @@
 # API Manager Tools
 
-![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/jake-scott/apim-tools)![Travis (.org)](https://img.shields.io/travis/jake-scott/apim-tools)
+![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/jake-scott/apim-tools)
+[![Travis (.org) branch](https://img.shields.io/travis/jake-scott/apim-tools/master)](https://travis-ci.org/github/jake-scott/apim-tools)
 [![Go Report Card](https://goreportcard.com/badge/github.com/jake-scott/apim-tools?style=flat-square)](https://goreportcard.com/report/github.com/jake-scott/apim-tools)
-![Go Version](https://img.shields.io/badge/go%20version-%3E=1.14-61CFDD.svg?style=flat-square)
+[![Go Version](https://img.shields.io/badge/go%20version-%3E=1.14-61CFDD.svg?style=flat-square)](https://golang.org/)
 [![PkgGoDev](https://pkg.go.dev/badge/mod/github.com/jake-scott/apim-tools)](https://pkg.go.dev/mod/github.com/jake-scott/apim-tools)
-![GitHub](https://img.shields.io/github/license/jake-scott/apim-tools)
+[![GitHub](https://img.shields.io/github/license/jake-scott/apim-tools)](https://raw.githubusercontent.com/jake-scott/apim-tools/master/LICENSE)
 
 ## Description
 
