@@ -30,17 +30,16 @@ var portalPublishCmd = &cobra.Command{
 }
 
 func init() {
-
 	portalPublishCmd.Flags().StringVar(&portalCmdOpts.apimName, "apim", "", "API Manager instance")
-	portalPublishCmd.Flags().StringVar(&portalCmdOpts.resourceGroup, "rg", "", "Resource group contianing the APIM instance")
+	portalPublishCmd.Flags().StringVar(&portalCmdOpts.resourceGroup, "rg", "", "Resource group containing the APIM instance")
 	portalPublishCmd.Flags().BoolVarP(&portalCmdOpts.wait, "wait", "w", false, "Wait for completion")
 
-	portalPublishCmd.MarkFlagRequired("apim")
-	portalPublishCmd.MarkFlagRequired("rg")
+	errPanic(portalPublishCmd.MarkFlagRequired("apim"))
+	errPanic(portalPublishCmd.MarkFlagRequired("rg"))
 
-	viper.GetViper().BindPFlag("apim", portalPublishCmd.Flags().Lookup("apim"))
-	viper.GetViper().BindPFlag("rg", portalPublishCmd.Flags().Lookup("rg"))
-	viper.GetViper().BindPFlag("wait", portalPublishCmd.Flags().Lookup("wait"))
+	errPanic(viper.GetViper().BindPFlag("apim", portalPublishCmd.Flags().Lookup("apim")))
+	errPanic(viper.GetViper().BindPFlag("rg", portalPublishCmd.Flags().Lookup("rg")))
+	errPanic(viper.GetViper().BindPFlag("wait", portalPublishCmd.Flags().Lookup("wait")))
 
 	portalCmd.AddCommand(portalPublishCmd)
 }
@@ -66,7 +65,7 @@ func doPortalPublish() error {
 		status1.PortalVersion.Day(), status1.PortalVersion.Hour(),
 		status1.PortalVersion.Minute(), 0, 0, time.UTC).Add(time.Minute)
 	if waitUntil.After(time.Now()) {
-		waitFor := waitUntil.Sub(time.Now())
+		waitFor := time.Until(waitUntil)
 		logging.Logger().Infof("Waiting for %s before publishing portal", waitFor.Truncate(time.Second))
 		time.Sleep(waitFor)
 	}

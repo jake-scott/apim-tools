@@ -25,7 +25,7 @@ var versionCmd = &cobra.Command{
 
 func init() {
 	versionCmd.Flags().BoolVar(&portalCmdOpts.asJson, "json", false, "Return version as JSON")
-	viper.GetViper().BindPFlag("json", versionCmd.Flags().Lookup("json"))
+	errPanic(viper.GetViper().BindPFlag("json", versionCmd.Flags().Lookup("json")))
 
 	rootCmd.AddCommand(versionCmd)
 }
@@ -46,7 +46,6 @@ func doVersion() error {
 		}
 
 		fmt.Println(string(b))
-
 	} else {
 		fmt.Printf("apim-tools version %s\n", version.Version)
 	}

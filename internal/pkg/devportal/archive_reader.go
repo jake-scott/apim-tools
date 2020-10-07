@@ -45,7 +45,6 @@ func (a *ArchiveReader) Process() error {
 	var cOK, cErr, cSkipped int // blob counts
 
 	for _, f := range a.reader.File {
-
 		// rc can be used to read the content
 		rc, err := f.Open()
 		if err != nil {
@@ -106,7 +105,7 @@ type ZipReadSeeker struct {
 func (z *ZipReadSeeker) Read(b []byte) (n int, err error) {
 	n, err = z.ReadCloser.Read(b)
 	if err == nil {
-		z.offset = z.offset + uint64(n)
+		z.offset += uint64(n)
 	}
 
 	logging.Logger().Tracef("ZIP READ: %d bytes, new offset %d", n, z.offset)

@@ -27,7 +27,7 @@ func mkRandomData() (*bytes.Buffer, error) {
 	}
 	defer f.Close()
 
-	io.CopyN(rndBuf, f, testFileSize)
+	_, err = io.CopyN(rndBuf, f, testFileSize)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +155,6 @@ func TestZipReadSeeker(t *testing.T) {
 		// Seek around, testing offsets as we go
 		var nBadSeeks int
 		for _, seek := range tt.seeks {
-
 			off, err := zrs.Seek(seek.offset, seek.whence)
 			if seek.expectSuccess {
 				if err != nil {
@@ -188,16 +187,11 @@ func TestZipReadSeeker(t *testing.T) {
 				t.Errorf("Expected %d bytes read, got %d", tt.toRead, nRead)
 			}
 
-			if bytes.Compare(tt.data, testBuf.Bytes()) != 0 {
+			if !bytes.Equal(tt.data, testBuf.Bytes()) {
 				t.Errorf("data contents mismatch, got %d, wanted %d bytes", nRead, tt.toRead)
 			}
-
-		} else {
-			if err == nil {
-				t.Errorf("Expected read to fail, it succeeed for test %+v", tt)
-			}
+		} else if err == nil {
+			t.Errorf("Expected read to fail, it succeeded for test %+v", tt)
 		}
-
 	}
-
 }

@@ -12,7 +12,6 @@ import (
 var authCfg *authentication.Config
 
 func Configure(v *viper.Viper) error {
-
 	builder := &authentication.Builder{
 		SubscriptionID:     v.GetString("auth.subscription"),
 		ClientID:           v.GetString("auth.client-id"),

@@ -71,7 +71,6 @@ func Configure(cfg *viper.Viper) error {
 				"exe":      path.Base(os.Args[0]),
 				"instance": g_instanceId,
 			})
-
 		} else {
 			return err
 		}

@@ -22,17 +22,16 @@ var portalEndpointsCmd = &cobra.Command{
 }
 
 func init() {
-
 	portalEndpointsCmd.Flags().StringVar(&portalCmdOpts.apimName, "apim", "", "API Manager instance")
-	portalEndpointsCmd.Flags().StringVar(&portalCmdOpts.resourceGroup, "rg", "", "Resource group contianing the APIM instance")
+	portalEndpointsCmd.Flags().StringVar(&portalCmdOpts.resourceGroup, "rg", "", "Resource group containing the APIM instance")
 	portalEndpointsCmd.Flags().BoolVar(&portalCmdOpts.asJson, "json", false, "Return results as JSON")
 
-	portalEndpointsCmd.MarkFlagRequired("apim")
-	portalEndpointsCmd.MarkFlagRequired("rg")
+	errPanic(portalEndpointsCmd.MarkFlagRequired("apim"))
+	errPanic(portalEndpointsCmd.MarkFlagRequired("rg"))
 
-	viper.GetViper().BindPFlag("apim", portalEndpointsCmd.Flags().Lookup("apim"))
-	viper.GetViper().BindPFlag("rg", portalEndpointsCmd.Flags().Lookup("rg"))
-	viper.GetViper().BindPFlag("json", portalEndpointsCmd.Flags().Lookup("json"))
+	errPanic(viper.GetViper().BindPFlag("apim", portalEndpointsCmd.Flags().Lookup("apim")))
+	errPanic(viper.GetViper().BindPFlag("rg", portalEndpointsCmd.Flags().Lookup("rg")))
+	errPanic(viper.GetViper().BindPFlag("json", portalEndpointsCmd.Flags().Lookup("json")))
 
 	portalCmd.AddCommand(portalEndpointsCmd)
 }

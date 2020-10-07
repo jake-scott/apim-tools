@@ -6,6 +6,8 @@ HASHIWANTALL =  terraform-provider-azurerm/2.29.0 \
 
 current_dir := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
+GOPATH 		?= $(shell go env GOPATH)
+
 TFBINDIR	= $(current_dir)/terraform
 
 ## Find the 'highest' vM.m.p version tag if there is one, else
@@ -28,6 +30,11 @@ endif
 
 default: build
 
+tools:
+	@echo "==> installing required tooling..."
+	GO111MODULE=off go get -u github.com/client9/misspell/cmd/misspell
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin v1.31.0
+
 build: fmtcheck
 	go install -ldflags '-X github.com/jake-scott/apim-tools/version.Version=$(MAXVER)'
 
@@ -37,6 +44,8 @@ fmtcheck:
 acctest: tfget
 	TERRAFORM=$(TFBINDIR)/terraform scripts/acctests.sh
 
+lint:
+	golangci-lint run ./...
 
 #####   BEGIN HASHICORP DOWNLOAD SECTION    ############
 GOHOSTOS   = $(shell go env GOHOSTOS)

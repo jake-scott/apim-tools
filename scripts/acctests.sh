@@ -38,6 +38,10 @@ configure_tf() {
     TERRAFORM=${TERRAFORM:-terraform}
 }
 
+configure_tool() {
+    envsubst <${MYDIR}/../t/ci-conf.yml >${TMPDIR}/conf.yml
+}
+
 create_resources() {
     pushd ${TFDIR}
 
@@ -56,14 +60,14 @@ publish_test_site() {
 
     echo "------- Uploading test portal $archive"
     ${BIN} devportal upload \
-        --subscription 0f32bf3b-84fb-487c-81d9-df6ccaae74aa \
+        --config ${TMPDIR}/conf.yml \
         --rg apimtooltest-${RND} \
         --apim test-${RND} \
         --in ${MYDIR}/../t/${archive}  || return 1
 
     echo '------- Publishing portal'
     ${BIN} devportal publish \
-        --subscription 0f32bf3b-84fb-487c-81d9-df6ccaae74aa \
+        --config ${TMPDIR}/conf.yml \
         --rg apimtooltest-${RND} \
         --apim test-${RND} \
         --wait || return 1
@@ -74,7 +78,7 @@ publish_test_site() {
 test_live_site1() {
     echo '------- Testing the uploaded portal'
     DPURL=$(${BIN} devportal endpoints \
-        --subscription 0f32bf3b-84fb-487c-81d9-df6ccaae74aa \
+        --config ${TMPDIR}/conf.yml \
         --rg apimtooltest-${RND} \
         --apim test-${RND} \
         --json \
@@ -116,7 +120,7 @@ test_live_site1() {
 test_live_site2() {
     echo '------- Testing the uploaded portal'
     DPURL=$(${BIN} devportal endpoints \
-        --subscription 0f32bf3b-84fb-487c-81d9-df6ccaae74aa \
+        --config ${TMPDIR}/conf.yml \
         --rg apimtooltest-${RND} \
         --apim test-${RND} \
         --json \
@@ -186,6 +190,8 @@ BIN=${BIN:-$(go env GOPATH)/bin/apim-tools}
 
 configure_tf                 || exit 1
 create_resources             || exit 1
+
+configure_tool               || exit 1
 
 publish_test_site test1.zip  || exit 1
 test_live_site1              || exit 1

@@ -1,0 +1,12 @@
+---
+
+logging:
+  location: stderr
+  format: text
+  level: info
+
+auth:
+  client-id: ${ARM_CLIENT_ID}
+  client-secret: ${ARM_CLIENT_SECRET}
+  tenant: ${ARM_TENANT_ID}
+  subscription: ${ARM_SUBSCRIPTION_ID}

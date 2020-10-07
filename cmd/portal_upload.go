@@ -36,20 +36,19 @@ option.`,
 }
 
 func init() {
-
 	portalUploadCmd.Flags().StringVar(&portalCmdOpts.apimName, "apim", "", "API Manager instance")
 	portalUploadCmd.Flags().StringVar(&portalCmdOpts.backupFile, "in", "", "Zip archive to upload")
-	portalUploadCmd.Flags().StringVar(&portalCmdOpts.resourceGroup, "rg", "", "Resource group contianing the APIM instance")
+	portalUploadCmd.Flags().StringVar(&portalCmdOpts.resourceGroup, "rg", "", "Resource group containing the APIM instance")
 	portalUploadCmd.Flags().BoolVar(&portalCmdOpts.nodelete, "nodelete", false, "Do not delete extraneous media from portal")
 
-	portalUploadCmd.MarkFlagRequired("apim")
-	portalUploadCmd.MarkFlagRequired("in")
-	portalUploadCmd.MarkFlagRequired("rg")
+	errPanic(portalUploadCmd.MarkFlagRequired("apim"))
+	errPanic(portalUploadCmd.MarkFlagRequired("in"))
+	errPanic(portalUploadCmd.MarkFlagRequired("rg"))
 
-	viper.GetViper().BindPFlag("apim", portalUploadCmd.Flags().Lookup("apim"))
-	viper.GetViper().BindPFlag("in", portalUploadCmd.Flags().Lookup("in"))
-	viper.GetViper().BindPFlag("rg", portalUploadCmd.Flags().Lookup("rg"))
-	viper.GetViper().BindPFlag("nodelete", portalUploadCmd.Flags().Lookup("nodelete"))
+	errPanic(viper.GetViper().BindPFlag("apim", portalUploadCmd.Flags().Lookup("apim")))
+	errPanic(viper.GetViper().BindPFlag("in", portalUploadCmd.Flags().Lookup("in")))
+	errPanic(viper.GetViper().BindPFlag("rg", portalUploadCmd.Flags().Lookup("rg")))
+	errPanic(viper.GetViper().BindPFlag("nodelete", portalUploadCmd.Flags().Lookup("nodelete")))
 
 	portalCmd.AddCommand(portalUploadCmd)
 }
@@ -123,7 +122,6 @@ func deleteExtraMediaItems(cli *ApimClient, mgmtUrl string, mediaList []string) 
 		for _, item := range subItems {
 			allContentIds = append(allContentIds, item["id"].(string))
 		}
-
 	}
 
 	logging.Logger().Debugf("Found %d content items on portal", len(allContentIds))
@@ -162,7 +160,6 @@ func deleteExtraMediaItems(cli *ApimClient, mgmtUrl string, mediaList []string) 
 	logging.Logger().Infof("Deleted %d extra content items, %d errors", cOK, cErr)
 
 	return nil
-
 }
 
 func deleteExtraBlobs(url *azblob.ContainerURL, blobList []string) error {
@@ -209,6 +206,7 @@ func deleteExtraBlobs(url *azblob.ContainerURL, blobList []string) error {
 	return nil
 }
 
+//nolint:interfacer
 func uploadContentItem(cli *ApimClient, mgmtUrl string, id string, item interface{}) error {
 	reqUrl := apimMgmtUrl(mgmtUrl) + id
 
@@ -225,6 +223,9 @@ func uploadContentItem(cli *ApimClient, mgmtUrl string, id string, item interfac
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := cli.Do(req)
+	if err != nil {
+		return err
+	}
 
 	// Only accept HTTP 2xx codes
 	if resp.StatusCode >= 300 {

@@ -3,7 +3,11 @@ language: go
 go:
   - "1.14.x"
 
+install:
+ - make tools
+
 script:
+ - make lint
  - make build
  - make acctest
 
