@@ -55,14 +55,14 @@ publish_test_site() {
     archive=$1
 
     echo "------- Uploading test portal $archive"
-    ./apim-tools devportal upload \
+    ${BIN} devportal upload \
         --subscription 0f32bf3b-84fb-487c-81d9-df6ccaae74aa \
         --rg apimtooltest-${RND} \
         --apim test-${RND} \
         --in ${MYDIR}/../t/${archive}  || return 1
 
     echo '------- Publishing portal'
-    ./apim-tools devportal publish \
+    ${BIN} devportal publish \
         --subscription 0f32bf3b-84fb-487c-81d9-df6ccaae74aa \
         --rg apimtooltest-${RND} \
         --apim test-${RND} \
@@ -73,7 +73,7 @@ publish_test_site() {
 
 test_live_site1() {
     echo '------- Testing the uploaded portal'
-    DPURL=$(./apim-tools devportal endpoints \
+    DPURL=$(${BIN} devportal endpoints \
         --subscription 0f32bf3b-84fb-487c-81d9-df6ccaae74aa \
         --rg apimtooltest-${RND} \
         --apim test-${RND} \
@@ -115,7 +115,7 @@ test_live_site1() {
 
 test_live_site2() {
     echo '------- Testing the uploaded portal'
-    DPURL=$(./apim-tools devportal endpoints \
+    DPURL=$(${BIN} devportal endpoints \
         --subscription 0f32bf3b-84fb-487c-81d9-df6ccaae74aa \
         --rg apimtooltest-${RND} \
         --apim test-${RND} \
@@ -182,6 +182,7 @@ trap cleanup exit
 
 MYDIR=$(dirname $0)
 RND=${RAND:-$(dd if=/dev/urandom count=1 bs=5 2>/dev/null| base32)}
+BIN=${BIN:-$(go env GOPATH)/bin/apim-tools}
 
 configure_tf                 || exit 1
 create_resources             || exit 1
