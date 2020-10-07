@@ -8,12 +8,28 @@ current_dir := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 TFBINDIR	= $(current_dir)/terraform
 
+## Find the 'highest' vM.m.p version tag if there is one, else
+#  use the commit ID
+GITTAGS	    := $(shell git tag --points-at HEAD | sort -V)
+GITVER		:= $(patsubst v%,%,$(filter v%, $(GITTAGS)))
+MAXVER		:= $(lastword $(GITVER))
+ISDIRTY		:= $(shell git diff-index --quiet HEAD -- || echo yes)
+
+ifndef MAXVER
+ MAXVER = commit-$(shell git rev-parse --short HEAD)
+endif
+
+## But always use 'dev' if there are changes in the index
+ifdef ISDIRTY
+  MAXVER = dev
+endif
+
 .PHONY: build fmtcheck
 
 default: build
 
 build: fmtcheck
-	go install
+	go install -ldflags '-X github.com/jake-scott/apim-tools/version.Version=$(MAXVER)'
 
 fmtcheck:
 	@"$(CURDIR)/scripts/gofmtcheck.sh"

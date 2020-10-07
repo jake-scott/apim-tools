@@ -11,6 +11,7 @@ import (
 
 	"github.com/jake-scott/apim-tools/internal/pkg/auth"
 	"github.com/jake-scott/apim-tools/internal/pkg/logging"
+	"github.com/jake-scott/apim-tools/version"
 )
 
 var (
@@ -34,7 +35,7 @@ const (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "apim-tools",
-	Short: "Azure API Manager tools",
+	Short: "Azure API Manager tools, version " + version.Version,
 
 	PersistentPreRunE: doConfigure,
 	SilenceUsage:      true,
