@@ -54,14 +54,14 @@ func init() {
 }
 
 func doPortalUpload() error {
-	info, err := buildApimInfo(azureApiVersion)
+	info, err := buildApimInfo(azureAPIVersion)
 	if err != nil {
 		return err
 	}
 
 	// Get a blob container object
-	u, _ := url.Parse(info.devPortalBlobStorageUrl)
-	containerUrl := azblob.NewContainerURL(*u, azblob.NewPipeline(azblob.NewAnonymousCredential(), azblob.PipelineOptions{}))
+	u, _ := url.Parse(info.devPortalBlobStorageURL)
+	containerURL := azblob.NewContainerURL(*u, azblob.NewPipeline(azblob.NewAnonymousCredential(), azblob.PipelineOptions{}))
 
 	// Keep a list of what we uploaded
 	var blobList = make([]string, 0, 100)
@@ -76,9 +76,9 @@ func doPortalUpload() error {
 
 	// Setup the callbacks
 	ar = ar.WithBlobHandler(func(name string, f devportal.ZipReadSeeker) error {
-		return uploadBlob(&containerUrl, name, f, &blobList)
+		return uploadBlob(&containerURL, name, f, &blobList)
 	}).WithIndexHandler(func(f devportal.ZipReadSeeker) error {
-		return uploadContentItems(info.apimClient, info.apimMgmtUrl, f, &contentItemList)
+		return uploadContentItems(info.apimClient, info.apimMgmtURL, f, &contentItemList)
 	})
 
 	// Upload the content
@@ -90,23 +90,23 @@ func doPortalUpload() error {
 	if viper.GetBool("nodelete") {
 		logging.Logger().Infoln("Not deleting extra content (--nodelete)")
 	} else {
-		err = deleteExtraBlobs(&containerUrl, blobList)
-		err2 := deleteExtraMediaItems(info.apimClient, info.apimMgmtUrl, contentItemList)
+		err = deleteExtraBlobs(&containerURL, blobList)
+		err2 := deleteExtraMediaItems(info.apimClient, info.apimMgmtURL, contentItemList)
 
 		switch {
 		case err == nil && err2 != nil:
 			err = err2
 		case err != nil && err2 != nil:
-			err = fmt.Errorf("Deleting: %s AND %s", err, err2)
+			err = fmt.Errorf("deleting: %s AND %s", err, err2)
 		}
 	}
 
 	return err
 }
 
-func deleteExtraMediaItems(cli *ApimClient, mgmtUrl string, mediaList []string) error {
+func deleteExtraMediaItems(cli *apimClient, mgmtURL string, mediaList []string) error {
 	// Get content types used by the portal
-	contentTypes, err := getContentTypes(cli, mgmtUrl)
+	contentTypes, err := getContentTypes(cli, mgmtURL)
 	if err != nil {
 		return err
 	}
@@ -114,7 +114,7 @@ func deleteExtraMediaItems(cli *ApimClient, mgmtUrl string, mediaList []string) 
 	// Get content items for each content type
 	var allContentIds []string
 	for _, ct := range contentTypes {
-		subItems, err := getContentItemsAsMap(cli, mgmtUrl, ct)
+		subItems, err := getContentItemsAsMap(cli, mgmtURL, ct)
 		if err != nil {
 			return err
 		}
@@ -134,8 +134,8 @@ func deleteExtraMediaItems(cli *ApimClient, mgmtUrl string, mediaList []string) 
 	for _, idI := range extraItems {
 		id := idI.(string)
 
-		reqUrl := apimMgmtUrl(mgmtUrl) + id
-		req, err := http.NewRequest("DELETE", reqUrl, nil)
+		reqURL := apimMgmtURL(mgmtURL) + id
+		req, err := http.NewRequest("DELETE", reqURL, nil)
 		if err != nil {
 			return err
 		}
@@ -190,9 +190,9 @@ func deleteExtraBlobs(url *azblob.ContainerURL, blobList []string) error {
 	for _, blobNameI := range extraBlobs {
 		blobName := blobNameI.(string)
 		logging.Logger().Debugf("Deleting blob: %s", blobName)
-		blobUrl := url.NewBlobURL(blobName)
+		blobURL := url.NewBlobURL(blobName)
 
-		_, err := blobUrl.Delete(ctx, azblob.DeleteSnapshotsOptionNone, azblob.BlobAccessConditions{})
+		_, err := blobURL.Delete(ctx, azblob.DeleteSnapshotsOptionNone, azblob.BlobAccessConditions{})
 		if err != nil {
 			logging.Logger().WithError(err).Errorf("Deleting BLOB %s", blobName)
 			cErr++
@@ -207,8 +207,8 @@ func deleteExtraBlobs(url *azblob.ContainerURL, blobList []string) error {
 }
 
 //nolint:interfacer
-func uploadContentItem(cli *ApimClient, mgmtUrl string, id string, item interface{}) error {
-	reqUrl := apimMgmtUrl(mgmtUrl) + id
+func uploadContentItem(cli *apimClient, mgmtURL string, id string, item interface{}) error {
+	reqURL := apimMgmtURL(mgmtURL) + id
 
 	var requestBody []byte
 	requestBody, err := json.Marshal(item)
@@ -216,7 +216,7 @@ func uploadContentItem(cli *ApimClient, mgmtUrl string, id string, item interfac
 		return err
 	}
 
-	req, err := http.NewRequest("PUT", reqUrl, ioutil.NopCloser(bytes.NewBuffer(requestBody)))
+	req, err := http.NewRequest("PUT", reqURL, ioutil.NopCloser(bytes.NewBuffer(requestBody)))
 	if err != nil {
 		return err
 	}
@@ -229,14 +229,14 @@ func uploadContentItem(cli *ApimClient, mgmtUrl string, id string, item interfac
 
 	// Only accept HTTP 2xx codes
 	if resp.StatusCode >= 300 {
-		return fmt.Errorf("Status %s received", resp.Status)
+		return fmt.Errorf("status %s received", resp.Status)
 	}
 
 	logging.Logger().Debugf("Uploaded item %s", id)
 	return nil
 }
 
-func uploadContentItems(cli *ApimClient, mgmtUrl string, f devportal.ZipReadSeeker, list *[]string) error {
+func uploadContentItems(cli *apimClient, mgmtURL string, f devportal.ZipReadSeeker, list *[]string) error {
 	// Get the index contents
 	data, err := ioutil.ReadAll(&f)
 	if err != nil {
@@ -257,7 +257,7 @@ func uploadContentItems(cli *ApimClient, mgmtUrl string, f devportal.ZipReadSeek
 		key := item["id"].(string)
 		delete(item, "id")
 
-		err := uploadContentItem(cli, mgmtUrl, key, item)
+		err := uploadContentItem(cli, mgmtURL, key, item)
 		if err != nil {
 			logging.Logger().Errorf("Uploading content item %s: %s", key, err)
 			cErr++
@@ -274,8 +274,8 @@ func uploadContentItems(cli *ApimClient, mgmtUrl string, f devportal.ZipReadSeek
 
 func uploadBlob(url *azblob.ContainerURL, name string, f devportal.ZipReadSeeker, list *[]string) error {
 	logging.Logger().Debugf("Uploading media blob %s", name)
-	blobUrl := url.NewBlockBlobURL(name)
-	_, err := blobUrl.Upload(context.Background(), &f, azblob.BlobHTTPHeaders{ContentType: "text/plain"}, azblob.Metadata{}, azblob.BlobAccessConditions{})
+	blobURL := url.NewBlockBlobURL(name)
+	_, err := blobURL.Upload(context.Background(), &f, azblob.BlobHTTPHeaders{ContentType: "text/plain"}, azblob.Metadata{}, azblob.BlobAccessConditions{})
 
 	if err != nil {
 		return err

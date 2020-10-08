@@ -15,7 +15,7 @@ import (
 )
 
 // Construct the instance ID
-func instanceId() string {
+func instanceID() string {
 	return fmt.Sprintf("/subscriptions/%s/resourceGroups/%s/providers/Microsoft.ApiManagement/service/%s",
 		viper.GetString("auth.subscription"),
 		viper.GetString("rg"),
@@ -23,40 +23,40 @@ func instanceId() string {
 	)
 }
 
-func instanceMgmtUrl() string {
-	return azureManagementEndpoint + instanceId()
+func instanceMgmtURL() string {
+	return azureManagementEndpoint + instanceID()
 }
 
-func apimMgmtUrl(mgmtHost string) string {
+func apimMgmtURL(mgmtHost string) string {
 	return mgmtHost + "/subscriptions/00000/resourceGroups/00000/providers/Microsoft.ApiManagement/service/00000"
 }
 
-type ApimClient struct {
+type apimClient struct {
 	http.Client
 
 	sasToken   string
 	apiVersion string
 }
 
-func NewApimClient(sasToken, apiVersion string) *ApimClient {
-	return &ApimClient{
+func newApimClient(sasToken, apiVersion string) *apimClient {
+	return &apimClient{
 		sasToken:   sasToken,
 		apiVersion: apiVersion,
 	}
 }
 
-func (c *ApimClient) GetClient() *http.Client {
+func (c *apimClient) GetClient() *http.Client {
 	return &c.Client
 }
 
-func (c *ApimClient) Do(req *http.Request) (*http.Response, error) {
+func (c *apimClient) Do(req *http.Request) (*http.Response, error) {
 	/* Tack the API Version number to the query string */
 	vals, err := url.ParseQuery(req.URL.RawQuery)
 	if err != nil {
 		return nil, err
 	}
 
-	vals.Add("api-version", azureApiVersion)
+	vals.Add("api-version", azureAPIVersion)
 	req.URL.RawQuery = vals.Encode()
 
 	/* Decorate the request with he SAS token */
@@ -72,7 +72,7 @@ func (c *ApimClient) Do(req *http.Request) (*http.Response, error) {
 	return resp, err
 }
 
-func (c *ApimClient) Get(url string) (resp *http.Response, err error) {
+func (c *apimClient) Get(url string) (resp *http.Response, err error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -80,7 +80,7 @@ func (c *ApimClient) Get(url string) (resp *http.Response, err error) {
 	return c.Do(req)
 }
 
-func (c *ApimClient) Post(url string, body interface{}) (resp *http.Response, err error) {
+func (c *apimClient) Post(url string, body interface{}) (resp *http.Response, err error) {
 	var requestBody []byte
 	if body != nil {
 		requestBody, err = json.Marshal(body)
@@ -98,14 +98,14 @@ func (c *ApimClient) Post(url string, body interface{}) (resp *http.Response, er
 	return c.Do(req)
 }
 
-type AzureClient struct {
+type azureClient struct {
 	http.Client
 
 	authz      autorest.Authorizer
 	apiVersion string
 }
 
-func NewAzureClient(apiVersion string) (*AzureClient, error) {
+func newAzureClient(apiVersion string) (*azureClient, error) {
 	// Prepare the oauth bits and pieces
 	s := autorest.CreateSender()
 
@@ -119,24 +119,24 @@ func NewAzureClient(apiVersion string) (*AzureClient, error) {
 		return nil, err
 	}
 
-	return &AzureClient{
+	return &azureClient{
 		authz:      authz,
 		apiVersion: apiVersion,
 	}, nil
 }
 
-func (c *AzureClient) GetClient() *http.Client {
+func (c *azureClient) GetClient() *http.Client {
 	return &c.Client
 }
 
-func (c *AzureClient) Do(req *http.Request) (*http.Response, error) {
+func (c *azureClient) Do(req *http.Request) (*http.Response, error) {
 	/* Tack the API Version number to the query string */
 	vals, err := url.ParseQuery(req.URL.RawQuery)
 	if err != nil {
 		return nil, err
 	}
 
-	vals.Add("api-version", azureApiVersion)
+	vals.Add("api-version", azureAPIVersion)
 	req.URL.RawQuery = vals.Encode()
 
 	/* Decorate the request with he authorizer */
@@ -155,7 +155,7 @@ func (c *AzureClient) Do(req *http.Request) (*http.Response, error) {
 	return resp, err
 }
 
-func (c *AzureClient) Get(url string) (resp *http.Response, err error) {
+func (c *azureClient) Get(url string) (resp *http.Response, err error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -163,7 +163,7 @@ func (c *AzureClient) Get(url string) (resp *http.Response, err error) {
 	return c.Do(req)
 }
 
-func (c *AzureClient) Post(url string, body interface{}) (resp *http.Response, err error) {
+func (c *azureClient) Post(url string, body interface{}) (resp *http.Response, err error) {
 	var requestBody []byte
 	if body != nil {
 		requestBody, err = json.Marshal(body)

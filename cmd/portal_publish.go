@@ -19,7 +19,7 @@ var portalPublishCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := doPortalPublish(); err != nil {
 			if errors.Is(err, context.DeadlineExceeded) {
-				return fmt.Errorf("Publish timed out")
+				return fmt.Errorf("publish timed out")
 			}
 
 			return err
@@ -45,13 +45,13 @@ func init() {
 }
 
 func doPortalPublish() error {
-	info, err := buildApimInfo(azureApiVersion)
+	info, err := buildApimInfo(azureAPIVersion)
 	if err != nil {
 		return err
 	}
 
 	// Get the current publish date
-	status1, err := getDevportalStatus(info.devPortalUrl)
+	status1, err := getDevportalStatus(info.devPortalURL)
 	if err != nil {
 		return err
 	}
@@ -71,8 +71,8 @@ func doPortalPublish() error {
 	}
 
 	// Trigger the publish
-	reqUrl := fmt.Sprintf("%s/publish", info.devPortalUrl)
-	req, err := http.NewRequest("POST", reqUrl, nil)
+	reqURL := fmt.Sprintf("%s/publish", info.devPortalURL)
+	req, err := http.NewRequest("POST", reqURL, nil)
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func doPortalPublish() error {
 
 	// Only accept HTTP 2xx codes
 	if resp.StatusCode >= 300 {
-		return fmt.Errorf("Publishing portal, got %s", resp.Status)
+		return fmt.Errorf("publishing portal, got %s", resp.Status)
 	}
 
 	if !viper.GetBool("wait") {
@@ -101,7 +101,7 @@ func doPortalPublish() error {
 
 	// Loop waiting for initial deployment
 	for {
-		isDeployed, err := isDevportalDeployedWithContext(ctx, info.devPortalUrl)
+		isDeployed, err := isDevportalDeployedWithContext(ctx, info.devPortalURL)
 		if err != nil {
 			return err
 		}
@@ -117,7 +117,7 @@ func doPortalPublish() error {
 
 	// Wait for the publish date to change
 	for {
-		status2, err := getDevportalStatusWithContext(ctx, info.devPortalUrl)
+		status2, err := getDevportalStatusWithContext(ctx, info.devPortalURL)
 		if err != nil {
 			return err
 		}

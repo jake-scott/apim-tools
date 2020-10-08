@@ -11,6 +11,7 @@ import (
 
 var authCfg *authentication.Config
 
+// Configure application wide Azure authentication
 func Configure(v *viper.Viper) error {
 	builder := &authentication.Builder{
 		SubscriptionID:     v.GetString("auth.subscription"),
@@ -35,12 +36,13 @@ func Configure(v *viper.Viper) error {
 	logging.Logger().Debugf("Auth config: %+v", authCfg)
 
 	if err != nil {
-		return fmt.Errorf("Error building AzureRM Client: %s", err)
+		return fmt.Errorf("error building AzureRM Client: %s", err)
 	}
 
 	return nil
 }
 
+// Get returns the application wide Azure authentication configuration
 func Get() *authentication.Config {
 	return authCfg
 }
