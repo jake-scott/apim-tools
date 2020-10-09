@@ -42,24 +42,24 @@ func init() {
 }
 
 func doPortalReset() error {
-	info, err := buildApimInfo(azureApiVersion)
+	info, err := buildApimInfo(azureAPIVersion)
 	if err != nil {
 		return err
 	}
 
 	// run the reset
-	if err := deletePortalContentItems(info.apimClient, info.apimMgmtUrl); err != nil {
+	if err := deletePortalContentItems(info.apimClient, info.apimMgmtURL); err != nil {
 		return err
 	}
 
-	return resetPortalBlobs(info.devPortalBlobStorageUrl)
+	return resetPortalBlobs(info.devPortalBlobStorageURL)
 }
 
-func deletePortalContentItems(cli *ApimClient, mgmtUrl string) error {
+func deletePortalContentItems(cli *apimClient, mgmtURL string) error {
 	logging.Logger().Info("Deleting portal content items")
 
 	// Get content types used by the portal
-	contentTypes, err := getContentTypes(cli, mgmtUrl)
+	contentTypes, err := getContentTypes(cli, mgmtURL)
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func deletePortalContentItems(cli *ApimClient, mgmtUrl string) error {
 	// Get content items for each content type
 	var contentItems []map[string]interface{}
 	for _, ct := range contentTypes {
-		subItems, err := getContentItemsAsMap(cli, mgmtUrl, ct)
+		subItems, err := getContentItemsAsMap(cli, mgmtURL, ct)
 		if err != nil {
 			return err
 		}
@@ -81,8 +81,8 @@ func deletePortalContentItems(cli *ApimClient, mgmtUrl string) error {
 	for _, item := range contentItems {
 		id := item["id"].(string)
 
-		reqUrl := apimMgmtUrl(mgmtUrl) + id
-		req, err := http.NewRequest("DELETE", reqUrl, nil)
+		reqURL := apimMgmtURL(mgmtURL) + id
+		req, err := http.NewRequest("DELETE", reqURL, nil)
 		if err != nil {
 			return err
 		}
@@ -109,17 +109,17 @@ func deletePortalContentItems(cli *ApimClient, mgmtUrl string) error {
 	return nil
 }
 
-func resetPortalBlobs(blobUrlString string) error {
+func resetPortalBlobs(blobURLString string) error {
 	logging.Logger().Infof("Deleting blobs")
 
-	u, _ := url.Parse(blobUrlString)
+	u, _ := url.Parse(blobURLString)
 	ctx := context.Background()
-	containerUrl := azblob.NewContainerURL(*u, azblob.NewPipeline(azblob.NewAnonymousCredential(), azblob.PipelineOptions{}))
+	containerURL := azblob.NewContainerURL(*u, azblob.NewPipeline(azblob.NewAnonymousCredential(), azblob.PipelineOptions{}))
 
 	var cOK, cErr int
 
 	for marker := (azblob.Marker{}); marker.NotDone(); {
-		listBlobs, err := containerUrl.ListBlobsFlatSegment(ctx, marker, azblob.ListBlobsSegmentOptions{})
+		listBlobs, err := containerURL.ListBlobsFlatSegment(ctx, marker, azblob.ListBlobsSegmentOptions{})
 		if err != nil {
 			return err
 		}
@@ -129,9 +129,9 @@ func resetPortalBlobs(blobUrlString string) error {
 		for _, blobInfo := range listBlobs.Segment.BlobItems {
 			logging.Logger().Debugf("Deleting blob: %s", blobInfo.Name)
 
-			blobUrl := containerUrl.NewBlobURL(blobInfo.Name)
+			blobURL := containerURL.NewBlobURL(blobInfo.Name)
 
-			_, err = blobUrl.Delete(ctx, azblob.DeleteSnapshotsOptionNone, azblob.BlobAccessConditions{})
+			_, err = blobURL.Delete(ctx, azblob.DeleteSnapshotsOptionNone, azblob.BlobAccessConditions{})
 			if err != nil {
 				logging.Logger().WithError(err).Errorf("Deleting BLOB %s", blobInfo.Name)
 				cErr++

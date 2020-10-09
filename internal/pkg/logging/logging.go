@@ -22,11 +22,12 @@ type logger struct {
 }
 
 // The one singleton logger
-var g_logger logger
-var g_instanceId string
+var gLogger logger
+var gInstanceID string
 
+// Logger returns the global logger
 func Logger() *logrus.Entry {
-	return g_logger.logger
+	return gLogger.logger
 }
 
 func init() {
@@ -36,40 +37,41 @@ func init() {
 	viper.SetDefault("logging.level", "info")
 
 	// The app instantiation ID
-	g_instanceId = uuid.New().String()
+	gInstanceID = uuid.New().String()
 
-	g_logger.logger = logrus.WithFields(logrus.Fields{
+	gLogger.logger = logrus.WithFields(logrus.Fields{
 		"pid":      os.Getpid(),
 		"exe":      path.Base(os.Args[0]),
-		"instance": g_instanceId,
+		"instance": gInstanceID,
 	})
 }
 
+// Configure sets the log level and output location/format
 func Configure(cfg *viper.Viper) error {
 	// Configure system log location
 	switch loc := cfg.GetString("logging.location"); loc {
 	case "stdout":
 		logrus.SetOutput(os.Stdout)
-		g_logger.logger = logrus.WithFields(logrus.Fields{})
+		gLogger.logger = logrus.WithFields(logrus.Fields{})
 	case "stderr":
 		logrus.SetOutput(os.Stderr)
-		g_logger.logger = logrus.WithFields(logrus.Fields{})
+		gLogger.logger = logrus.WithFields(logrus.Fields{})
 	default:
 		file, err := os.OpenFile(loc, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 		if err == nil {
-			g_logger.logger.Debugf("Switching system log to %s", loc)
+			gLogger.logger.Debugf("Switching system log to %s", loc)
 			logrus.SetOutput(file)
 
-			if g_logger.logFile != nil {
-				g_logger.logFile.Close()
+			if gLogger.logFile != nil {
+				gLogger.logFile.Close()
 			}
 
-			g_logger.logFile = file
+			gLogger.logFile = file
 
-			g_logger.logger = logrus.WithFields(logrus.Fields{
+			gLogger.logger = logrus.WithFields(logrus.Fields{
 				"pid":      os.Getpid(),
 				"exe":      path.Base(os.Args[0]),
-				"instance": g_instanceId,
+				"instance": gInstanceID,
 			})
 		} else {
 			return err
@@ -83,7 +85,7 @@ func Configure(cfg *viper.Viper) error {
 		if err == nil {
 			logrus.SetLevel(val)
 		} else {
-			return fmt.Errorf("Bad log level: [%s]", level)
+			return fmt.Errorf("bad log level: [%s]", level)
 		}
 	}
 

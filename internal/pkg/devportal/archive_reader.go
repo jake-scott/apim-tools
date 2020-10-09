@@ -9,15 +9,24 @@ import (
 	"github.com/jake-scott/apim-tools/internal/pkg/logging"
 )
 
+// IndexHandler defines a function prototype that handles an archive 'index'
+// (data.json) as it is read from the archive
 type IndexHandler func(f ZipReadSeeker) error
+
+// BlobHandler defines a function prototype that handles blobs as they are
+// read from the archive
 type BlobHandler func(name string, f ZipReadSeeker) error
 
+// ArchiveReader processes a Zip archive, dispatching handling of the index
+// and blobs to supplied callbacks
 type ArchiveReader struct {
 	reader       *zip.ReadCloser
 	indexHandler IndexHandler
 	blobHandler  BlobHandler
 }
 
+// NewArchiveReader returns an ArchiveReader configured to process the
+// supplied archive filename
 func NewArchiveReader(filename string) (a ArchiveReader, err error) {
 	a.reader, err = zip.OpenReader(filename)
 	if err != nil {
@@ -27,20 +36,28 @@ func NewArchiveReader(filename string) (a ArchiveReader, err error) {
 	return a, nil
 }
 
+// WithIndexHandler returns a new ArchiveReader configured with a callback
+// handler that Process() will dispatch to for the data.json index
 func (a ArchiveReader) WithIndexHandler(h IndexHandler) ArchiveReader {
 	a.indexHandler = h
 	return a
 }
 
+// WithBlobHandler returns a new ArchiveReader configured with a callback
+// handler that Process() will dispatch to when it encounters a Blob
 func (a ArchiveReader) WithBlobHandler(h BlobHandler) ArchiveReader {
 	a.blobHandler = h
 	return a
 }
 
+// Close the underlying Zip file reader.  Further operations on the
+// ArchiveReader are invalid
 func (a *ArchiveReader) Close() error {
 	return a.reader.Close()
 }
 
+// Process the archive, dispatching to callbacks to handle the index
+// and blobs
 func (a *ArchiveReader) Process() error {
 	var cOK, cErr, cSkipped int // blob counts
 
@@ -88,10 +105,10 @@ func (a *ArchiveReader) Process() error {
 	return nil
 }
 
-/*
- * The ZIP library does not support seeking within files in the archive, so
- * emulate it by closing the file, re-opening and reading some bytes
- */
+// ZipReadSeeker is a wrapper around an io.ReadCloser, providing additional
+// functionality to emulate Seek(), thus also implementing Seeker() and
+// making ZipReadSeeker a ReaderSeeker
+//
 type ZipReadSeeker struct {
 	io.ReadCloser
 
@@ -113,6 +130,8 @@ func (z *ZipReadSeeker) Read(b []byte) (n int, err error) {
 	return
 }
 
+// Seek to offset within the Zip file.  Implements io.Seeker, but will close and
+// re-open the file if the new offset is before the current offset
 func (z *ZipReadSeeker) Seek(offset int64, whence int) (absOffset int64, err error) {
 	// Calculate the desired absolute offset
 	switch whence {

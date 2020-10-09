@@ -24,7 +24,7 @@ var portalEndpointsCmd = &cobra.Command{
 func init() {
 	portalEndpointsCmd.Flags().StringVar(&portalCmdOpts.apimName, "apim", "", "API Manager instance")
 	portalEndpointsCmd.Flags().StringVar(&portalCmdOpts.resourceGroup, "rg", "", "Resource group containing the APIM instance")
-	portalEndpointsCmd.Flags().BoolVar(&portalCmdOpts.asJson, "json", false, "Return results as JSON")
+	portalEndpointsCmd.Flags().BoolVar(&portalCmdOpts.asJSON, "json", false, "Return results as JSON")
 
 	errPanic(portalEndpointsCmd.MarkFlagRequired("apim"))
 	errPanic(portalEndpointsCmd.MarkFlagRequired("rg"))
@@ -37,22 +37,22 @@ func init() {
 }
 
 type endpointsInfo struct {
-	DevPortalBlobStorageUrl string `json:"blobStorageUrl"`
-	DevPortalUrl            string `json:"devPortalUrl"`
-	ApimMgmtUrl             string `json:"managementUrl"`
+	DevPortalBlobStorageURL string `json:"blob_storage_url"`
+	DevPortalURL            string `json:"dev_portal_url"`
+	ApimMgmtURL             string `json:"management_url"`
 }
 
 func doPortalEndpoints() error {
-	info, err := buildApimInfo(azureApiVersion)
+	info, err := buildApimInfo(azureAPIVersion)
 	if err != nil {
 		return err
 	}
 
 	if viper.GetBool("json") {
 		ep := endpointsInfo{
-			DevPortalBlobStorageUrl: info.devPortalBlobStorageUrl,
-			DevPortalUrl:            info.devPortalUrl,
-			ApimMgmtUrl:             info.apimMgmtUrl,
+			DevPortalBlobStorageURL: info.devPortalBlobStorageURL,
+			DevPortalURL:            info.devPortalURL,
+			ApimMgmtURL:             info.apimMgmtURL,
 		}
 
 		b, err := json.MarshalIndent(ep, "", "    ")
@@ -62,9 +62,9 @@ func doPortalEndpoints() error {
 
 		fmt.Println(string(b))
 	} else {
-		fmt.Printf("Developer portal URL: %s\n", info.devPortalUrl)
-		fmt.Printf("      Management URL: %s\n", info.apimMgmtUrl)
-		fmt.Printf("    Blob storage URL: %s\n", info.devPortalBlobStorageUrl)
+		fmt.Printf("Developer portal URL: %s\n", info.devPortalURL)
+		fmt.Printf("      Management URL: %s\n", info.apimMgmtURL)
+		fmt.Printf("    Blob storage URL: %s\n", info.devPortalBlobStorageURL)
 	}
 
 	return nil

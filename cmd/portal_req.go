@@ -5,8 +5,8 @@ package cmd
 // A few details we need from the 'get instance' response
 type apimDetails struct {
 	Properties struct {
-		MgmtUrl                string `json:"managementApiUrl"`
-		PortalUrl              string `json:"developerPortalUrl"`
+		MgmtURL                string `json:"managementApiURL"`
+		PortalURL              string `json:"developerPortalURL"`
 		HostnameConfigurations []struct {
 			Type     string
 			Hostname string
@@ -30,7 +30,7 @@ type apimTokenRequestResponse struct {
 
 // response from the listSecrets request
 type apimListSecretsResponse struct {
-	Url string `json:"containerSasUrl"`
+	URL string `json:"containerSasURL"`
 }
 
 // response from contentTypes portal request
@@ -40,7 +40,7 @@ type apimPortalContentTypesResponse struct {
 
 // we only need the Id for now
 type apimPortalContentType struct {
-	Id string `json:"id"`
+	ID string `json:"id"`
 }
 
 // response from the contentItems portal reqiest

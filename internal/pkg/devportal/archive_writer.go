@@ -13,11 +13,16 @@ import (
 	"github.com/spf13/viper"
 )
 
+// ArchiveWriter writes a Zip archive file by processing Blobs from
+// an Azure Storage account, and an index (content items)
 type ArchiveWriter struct {
 	writer     *zip.Writer
 	fileHandle *os.File
 }
 
+// NewArchiveWriter returns a new ArchiveWriter ready to write
+// Blobs and an index to the supplied file
+//
 // Caller MUST run Close() on the ArchiveWriter or data will be lost
 //
 func NewArchiveWriter(filename string) (*ArchiveWriter, error) {
@@ -31,7 +36,7 @@ func NewArchiveWriter(filename string) (*ArchiveWriter, error) {
 	fh, err := os.OpenFile(filename, openFlags, 0666)
 	if err != nil {
 		if os.IsExist(err) {
-			err = fmt.Errorf("%s.  Use --force to overwrite existing file.", err)
+			err = fmt.Errorf("%s.  Use --force to overwrite existing file", err)
 		}
 		return nil, err
 	}
@@ -44,6 +49,8 @@ func NewArchiveWriter(filename string) (*ArchiveWriter, error) {
 	}, nil
 }
 
+// AddBlob copies the Blob from the supplied Azure storage account URL
+// to the underlying archive
 func (a *ArchiveWriter) AddBlob(url azblob.BlobURL) error {
 	// Initiate the Blob download, retrieve some metadata
 	dlResponse, err := url.Download(context.Background(), 0, 0, azblob.BlobAccessConditions{}, false)
@@ -78,6 +85,8 @@ func (a *ArchiveWriter) AddBlob(url azblob.BlobURL) error {
 	return nil
 }
 
+// AddContentItems writes the content items (index) JSON to the archive
+// as data.json
 func (a *ArchiveWriter) AddContentItems(data []byte) error {
 	// Zip header for this file
 	header := zip.FileHeader{
@@ -101,6 +110,7 @@ func (a *ArchiveWriter) AddContentItems(data []byte) error {
 	return nil
 }
 
+// Close closes the Zip archive, and MUST be called to prevent data loss
 func (a *ArchiveWriter) Close() error {
 	if err := a.writer.Close(); err != nil {
 		return err

@@ -24,7 +24,7 @@ var portalSastokenCmd = &cobra.Command{
 func init() {
 	portalSastokenCmd.Flags().StringVar(&portalCmdOpts.apimName, "apim", "", "API Manager instance")
 	portalSastokenCmd.Flags().StringVar(&portalCmdOpts.resourceGroup, "rg", "", "Resource group containing the APIM instance")
-	portalSastokenCmd.Flags().BoolVar(&portalCmdOpts.asJson, "json", false, "Return results as JSON")
+	portalSastokenCmd.Flags().BoolVar(&portalCmdOpts.asJSON, "json", false, "Return results as JSON")
 
 	errPanic(portalSastokenCmd.MarkFlagRequired("apim"))
 	errPanic(portalSastokenCmd.MarkFlagRequired("rg"))
@@ -41,7 +41,7 @@ type sastokenInfo struct {
 }
 
 func doPortalSastoken() error {
-	info, err := buildApimInfo(azureApiVersion)
+	info, err := buildApimInfo(azureAPIVersion)
 	if err != nil {
 		return err
 	}

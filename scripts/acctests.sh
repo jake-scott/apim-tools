@@ -82,7 +82,7 @@ test_live_site1() {
         --rg apimtooltest-${RND} \
         --apim test-${RND} \
         --json \
-        | jq -r .devPortalUrl)
+        | jq -r .dev_portal_url)
 
     echo "  -- Fetching ${DPURL}"
 
@@ -124,7 +124,7 @@ test_live_site2() {
         --rg apimtooltest-${RND} \
         --apim test-${RND} \
         --json \
-        | jq -r .devPortalUrl)
+        | jq -r .dev_portal_url)
 
     echo "  -- Fetching ${DPURL}"
 

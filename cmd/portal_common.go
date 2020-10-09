@@ -20,18 +20,18 @@ var portalCmdOpts struct {
 	resourceGroup string
 	force         bool
 	nodelete      bool
-	asJson        bool
+	asJSON        bool
 	wait          bool
 }
 
 // Info we need for portal operations
 type apimInfo struct {
-	azClient                *AzureClient
-	apimClient              *ApimClient
+	azClient                *azureClient
+	apimClient              *apimClient
 	apimSasToken            string
-	devPortalBlobStorageUrl string
-	devPortalUrl            string
-	apimMgmtUrl             string
+	devPortalBlobStorageURL string
+	devPortalURL            string
+	apimMgmtURL             string
 	apiVersion              string
 }
 
@@ -56,18 +56,18 @@ func buildApimInfo(apiVersion string) (i *apimInfo, err error) {
 	i = &apimInfo{apiVersion: apiVersion}
 
 	// Azure client that decorates the request with API version and access token
-	i.azClient, err = NewAzureClient(apiVersion)
+	i.azClient, err = newAzureClient(apiVersion)
 	if err != nil {
 		return nil, err
 	}
 
 	// Grab the dev portal and management URLs
 	logging.Logger().Infof("Querying instance")
-	i.devPortalUrl, i.apimMgmtUrl, err = getInstancelUrls(i.azClient)
+	i.devPortalURL, i.apimMgmtURL, err = getInstancelURLs(i.azClient)
 	if err != nil {
 		return nil, err
 	}
-	logging.Logger().Debugf("Dev portal URL: %s, Management API URL: %s", i.devPortalUrl, i.apimMgmtUrl)
+	logging.Logger().Debugf("Dev portal URL: %s, Management API URL: %s", i.devPortalURL, i.apimMgmtURL)
 
 	// Get a SAS token for the Administrator user
 	i.apimSasToken, err = getSasToken(i.azClient)
@@ -76,10 +76,10 @@ func buildApimInfo(apiVersion string) (i *apimInfo, err error) {
 	}
 
 	// APIM client that decorates the request with API version and SAS token
-	i.apimClient = NewApimClient(i.apimSasToken, apiVersion)
+	i.apimClient = newApimClient(i.apimSasToken, apiVersion)
 
 	// Get the BLOB storage URL
-	i.devPortalBlobStorageUrl, err = getBlobStorageUrl(i.apimClient, i.apimMgmtUrl)
+	i.devPortalBlobStorageURL, err = getBlobStorageURL(i.apimClient, i.apimMgmtURL)
 	if err != nil {
 		return nil, err
 	}
@@ -88,9 +88,9 @@ func buildApimInfo(apiVersion string) (i *apimInfo, err error) {
 }
 
 // Get the dev portal and management API URLs for the instance
-func getInstancelUrls(cli *AzureClient) (string, string, error) {
+func getInstancelURLs(cli *azureClient) (string, string, error) {
 	// Fetch APIM instance details
-	resp, err := cli.Get(instanceMgmtUrl())
+	resp, err := cli.Get(instanceMgmtURL())
 	if err != nil {
 		return "", "", err
 	}
@@ -99,7 +99,7 @@ func getInstancelUrls(cli *AzureClient) (string, string, error) {
 
 	// Only accept HTTP 2xx codes
 	if resp.StatusCode >= 300 {
-		return "", "", fmt.Errorf("Status %s received", resp.Status)
+		return "", "", fmt.Errorf("status %s received", resp.Status)
 	}
 
 	// Grab the body
@@ -114,24 +114,24 @@ func getInstancelUrls(cli *AzureClient) (string, string, error) {
 	}
 	logging.Logger().Debugf("APIM: %+v", apim)
 
-	dpUrl := apim.Properties.PortalUrl
-	mgmtUrl := apim.Properties.MgmtUrl
+	dpURL := apim.Properties.PortalURL
+	mgmtURL := apim.Properties.MgmtURL
 
 	// Use override in hostname config if there is one
 	for _, entry := range apim.Properties.HostnameConfigurations {
 		switch entry.Type {
 		case "DeveloperPortal":
-			dpUrl = "https://" + entry.Hostname
+			dpURL = "https://" + entry.Hostname
 		case "Management":
-			mgmtUrl = "https://" + entry.Hostname
+			mgmtURL = "https://" + entry.Hostname
 		}
 	}
 
-	return dpUrl, mgmtUrl, nil
+	return dpURL, mgmtURL, nil
 }
 
 // Get a Shared Access token for use with the APIM management API
-func getSasToken(cli *AzureClient) (string, error) {
+func getSasToken(cli *azureClient) (string, error) {
 	// Request a token valid for 30 minutes
 	expTime := time.Now().Add(time.Minute * tokenValidityPeriod)
 
@@ -143,8 +143,8 @@ func getSasToken(cli *AzureClient) (string, error) {
 	}
 
 	// User 'name' 1 is Administrator
-	sasReqUrl := fmt.Sprintf("%s/users/1/token", instanceMgmtUrl())
-	resp, err := cli.Post(sasReqUrl, tr)
+	sasReqURL := fmt.Sprintf("%s/users/1/token", instanceMgmtURL())
+	resp, err := cli.Post(sasReqURL, tr)
 	if err != nil {
 		return "", err
 	}
@@ -153,7 +153,7 @@ func getSasToken(cli *AzureClient) (string, error) {
 
 	// Only accept HTTP 2xx codes
 	if resp.StatusCode >= 300 {
-		return "", fmt.Errorf("Status %s received", resp.Status)
+		return "", fmt.Errorf("status %s received", resp.Status)
 	}
 
 	// Grab the body
@@ -172,16 +172,16 @@ func getSasToken(cli *AzureClient) (string, error) {
 }
 
 // Get the BLOB storage URL for the instance
-func getBlobStorageUrl(cli *ApimClient, mgmtUrl string) (string, error) {
-	reqUrl := fmt.Sprintf("%s/portalSettings/mediaContent/listSecrets", apimMgmtUrl(mgmtUrl))
-	resp, err := cli.Post(reqUrl, nil)
+func getBlobStorageURL(cli *apimClient, mgmtURL string) (string, error) {
+	reqURL := fmt.Sprintf("%s/portalSettings/mediaContent/listSecrets", apimMgmtURL(mgmtURL))
+	resp, err := cli.Post(reqURL, nil)
 	if err != nil {
 		return "", err
 	}
 
 	// Only accept HTTP 2xx codes
 	if resp.StatusCode >= 300 {
-		return "", fmt.Errorf("Status %s received", resp.Status)
+		return "", fmt.Errorf("status %s received", resp.Status)
 	}
 
 	// Grab the body
@@ -195,8 +195,8 @@ func getBlobStorageUrl(cli *ApimClient, mgmtUrl string) (string, error) {
 		return "", err
 	}
 
-	logging.Logger().Debugf("Blob store SAS URL: %s", secretsResp.Url)
-	return secretsResp.Url, nil
+	logging.Logger().Debugf("Blob store SAS URL: %s", secretsResp.URL)
+	return secretsResp.URL, nil
 }
 
 // Return slice a with all items in b removed
@@ -237,16 +237,16 @@ func toInterfaceSlice(slice interface{}) (out []interface{}) {
 }
 
 // Get a list of content items for a given content type
-func getContentItemsAsMap(cli *ApimClient, mgmtUrl string, contentType string) ([]map[string]interface{}, error) {
-	reqUrl := fmt.Sprintf("%s/contentTypes/%s/contentItems", apimMgmtUrl(mgmtUrl), contentType)
-	resp, err := cli.Get(reqUrl)
+func getContentItemsAsMap(cli *apimClient, mgmtURL string, contentType string) ([]map[string]interface{}, error) {
+	reqURL := fmt.Sprintf("%s/contentTypes/%s/contentItems", apimMgmtURL(mgmtURL), contentType)
+	resp, err := cli.Get(reqURL)
 	if err != nil {
 		return nil, err
 	}
 
 	// Only accept HTTP 2xx codes
 	if resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("Status %s received", resp.Status)
+		return nil, fmt.Errorf("tatus %s received", resp.Status)
 	}
 
 	// Grab the body
@@ -289,7 +289,7 @@ func isDevportalDeployedWithContext(ctx context.Context, url string) (bool, erro
 		return false, nil
 	}
 
-	return false, fmt.Errorf("Unknown dev portal status %d (%s)", resp.StatusCode, resp.Status)
+	return false, fmt.Errorf("unknown dev portal status %d (%s)", resp.StatusCode, resp.Status)
 }
 
 func getDevportalStatus(dpurl string) (status portalStatusQueryNormalised, err error) {
@@ -297,8 +297,8 @@ func getDevportalStatus(dpurl string) (status portalStatusQueryNormalised, err e
 }
 
 func getDevportalStatusWithContext(ctx context.Context, dpurl string) (status portalStatusQueryNormalised, err error) {
-	reqUrl := fmt.Sprintf("%s/internal-status-0123456789abcdef", dpurl)
-	req, err := http.NewRequestWithContext(ctx, "GET", reqUrl, nil)
+	reqURL := fmt.Sprintf("%s/internal-status-0123456789abcdef", dpurl)
+	req, err := http.NewRequestWithContext(ctx, "GET", reqURL, nil)
 	if err != nil {
 		return
 	}
@@ -318,7 +318,7 @@ func getDevportalStatusWithContext(ctx context.Context, dpurl string) (status po
 		defer resp.Body.Close()
 
 		if resp.StatusCode != 200 {
-			err = fmt.Errorf("Portal status: got %s", resp.Status)
+			err = fmt.Errorf("portal status: got %s", resp.Status)
 			return status, err
 		}
 
@@ -339,7 +339,7 @@ func getDevportalStatusWithContext(ctx context.Context, dpurl string) (status po
 	}
 
 	if numRetries == 0 {
-		err = fmt.Errorf("Too many bad responses received, giving up")
+		err = fmt.Errorf("too many bad responses received, giving up")
 		return
 	}
 

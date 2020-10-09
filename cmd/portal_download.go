@@ -48,7 +48,7 @@ func init() {
 }
 
 func doPortalDownload() error {
-	info, err := buildApimInfo(azureApiVersion)
+	info, err := buildApimInfo(azureAPIVersion)
 	if err != nil {
 		return err
 	}
@@ -61,24 +61,24 @@ func doPortalDownload() error {
 	defer aw.Close()
 
 	// run the download
-	if err := getPortalContentItems(aw, info.apimClient, info.apimMgmtUrl); err != nil {
+	if err := getPortalContentItems(aw, info.apimClient, info.apimMgmtURL); err != nil {
 		return err
 	}
 
-	return downloadPortalBlobs(aw, info.devPortalBlobStorageUrl)
+	return downloadPortalBlobs(aw, info.devPortalBlobStorageURL)
 }
 
-func downloadPortalBlobs(aw *devportal.ArchiveWriter, blobUrlString string) error {
+func downloadPortalBlobs(aw *devportal.ArchiveWriter, blobURLString string) error {
 	logging.Logger().Infof("Downloading media...")
 
-	u, _ := url.Parse(blobUrlString)
+	u, _ := url.Parse(blobURLString)
 	ctx := context.Background()
-	containerUrl := azblob.NewContainerURL(*u, azblob.NewPipeline(azblob.NewAnonymousCredential(), azblob.PipelineOptions{}))
+	containerURL := azblob.NewContainerURL(*u, azblob.NewPipeline(azblob.NewAnonymousCredential(), azblob.PipelineOptions{}))
 
 	var cOK, cErr int
 
 	for marker := (azblob.Marker{}); marker.NotDone(); {
-		listBlobs, err := containerUrl.ListBlobsFlatSegment(ctx, marker, azblob.ListBlobsSegmentOptions{})
+		listBlobs, err := containerURL.ListBlobsFlatSegment(ctx, marker, azblob.ListBlobsSegmentOptions{})
 		if err != nil {
 			return err
 		}
@@ -88,9 +88,9 @@ func downloadPortalBlobs(aw *devportal.ArchiveWriter, blobUrlString string) erro
 		for _, blobInfo := range listBlobs.Segment.BlobItems {
 			logging.Logger().Debugf("Found blob: %s", blobInfo.Name)
 
-			blobUrl := containerUrl.NewBlobURL(blobInfo.Name)
+			blobURL := containerURL.NewBlobURL(blobInfo.Name)
 
-			if err := aw.AddBlob(blobUrl); err != nil {
+			if err := aw.AddBlob(blobURL); err != nil {
 				logging.Logger().WithError(err).Errorf("Writing BLOB %s", blobInfo.Name)
 				cErr++
 			} else {
@@ -104,11 +104,11 @@ func downloadPortalBlobs(aw *devportal.ArchiveWriter, blobUrlString string) erro
 	return nil
 }
 
-func getPortalContentItems(aw *devportal.ArchiveWriter, cli *ApimClient, mgmtUrl string) error {
+func getPortalContentItems(aw *devportal.ArchiveWriter, cli *apimClient, mgmtURL string) error {
 	logging.Logger().Infof("Processing content items...")
 
 	// Get content types used by the portal
-	contentTypes, err := getContentTypes(cli, mgmtUrl)
+	contentTypes, err := getContentTypes(cli, mgmtURL)
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func getPortalContentItems(aw *devportal.ArchiveWriter, cli *ApimClient, mgmtUrl
 	// Get content items for each content type
 	var contentItems = make([]interface{}, 0, 200)
 	for _, ct := range contentTypes {
-		subItems, err := getContentItems(cli, mgmtUrl, ct)
+		subItems, err := getContentItems(cli, mgmtURL, ct)
 		if err != nil {
 			return err
 		}
@@ -141,16 +141,16 @@ func getPortalContentItems(aw *devportal.ArchiveWriter, cli *ApimClient, mgmtUrl
 }
 
 // Get a list of supported content types from the portal
-func getContentTypes(cli *ApimClient, mgmtUrl string) ([]string, error) {
-	reqUrl := fmt.Sprintf("%s/contentTypes", apimMgmtUrl(mgmtUrl))
-	resp, err := cli.Get(reqUrl)
+func getContentTypes(cli *apimClient, mgmtURL string) ([]string, error) {
+	reqURL := fmt.Sprintf("%s/contentTypes", apimMgmtURL(mgmtURL))
+	resp, err := cli.Get(reqURL)
 	if err != nil {
 		return nil, err
 	}
 
 	// Only accept HTTP 2xx codes
 	if resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("Status %s received", resp.Status)
+		return nil, fmt.Errorf("status %s received", resp.Status)
 	}
 
 	// Grab the body
@@ -167,7 +167,7 @@ func getContentTypes(cli *ApimClient, mgmtUrl string) ([]string, error) {
 	// Extract the IDs minus the /contentTypes/ prefix
 	types := make([]string, 0, 10)
 	for _, ct := range ctResp.Value {
-		s := strings.TrimPrefix(ct.Id, "/contentTypes/")
+		s := strings.TrimPrefix(ct.ID, "/contentTypes/")
 		types = append(types, s)
 	}
 
@@ -176,16 +176,16 @@ func getContentTypes(cli *ApimClient, mgmtUrl string) ([]string, error) {
 }
 
 // Get a list of content items for a given content type
-func getContentItems(cli *ApimClient, mgmtUrl string, contentType string) ([]interface{}, error) {
-	reqUrl := fmt.Sprintf("%s/contentTypes/%s/contentItems", apimMgmtUrl(mgmtUrl), contentType)
-	resp, err := cli.Get(reqUrl)
+func getContentItems(cli *apimClient, mgmtURL string, contentType string) ([]interface{}, error) {
+	reqURL := fmt.Sprintf("%s/contentTypes/%s/contentItems", apimMgmtURL(mgmtURL), contentType)
+	resp, err := cli.Get(reqURL)
 	if err != nil {
 		return nil, err
 	}
 
 	// Only accept HTTP 2xx codes
 	if resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("Status %s received", resp.Status)
+		return nil, fmt.Errorf("status %s received", resp.Status)
 	}
 
 	// Grab the body

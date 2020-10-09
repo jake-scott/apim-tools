@@ -17,8 +17,8 @@ import (
 var (
 	cfgFile        string
 	debug          bool
-	subscriptionId string
-	clientId       string
+	subscriptionID string
+	clientID       string
 	clientSecret   string
 	certPath       string
 	certPass       string
@@ -28,7 +28,7 @@ var (
 const (
 	azureLoginEndpoint      = "https://login.microsoftonline.com"
 	azureManagementEndpoint = "https://management.azure.com"
-	azureApiVersion         = "2019-12-01"
+	azureAPIVersion         = "2019-12-01"
 	tokenValidityPeriod     = 30 // minutes
 )
 
@@ -57,8 +57,8 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.apim-tools.yaml)")
 	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "enable debugging (default: false)")
 
-	rootCmd.PersistentFlags().StringVar(&subscriptionId, "subscription", "", "Azure subscription ID")
-	rootCmd.PersistentFlags().StringVar(&clientId, "client-id", "", "OAuth client ID (AAD App ID)")
+	rootCmd.PersistentFlags().StringVar(&subscriptionID, "subscription", "", "Azure subscription ID")
+	rootCmd.PersistentFlags().StringVar(&clientID, "client-id", "", "OAuth client ID (AAD App ID)")
 	rootCmd.PersistentFlags().StringVar(&clientSecret, "client-secret", "", "OAuth client secret")
 	rootCmd.PersistentFlags().StringVar(&certPath, "cert-file", "", "PKCS12 (.pfx) cert/key")
 	rootCmd.PersistentFlags().StringVar(&certPass, "cert-password", "", "cert-file passphrase")

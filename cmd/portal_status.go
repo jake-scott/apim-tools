@@ -27,7 +27,7 @@ var portalStatusCmd = &cobra.Command{
 func init() {
 	portalStatusCmd.Flags().StringVar(&portalCmdOpts.apimName, "apim", "", "API Manager instance")
 	portalStatusCmd.Flags().StringVar(&portalCmdOpts.resourceGroup, "rg", "", "Resource group containing the APIM instance")
-	portalStatusCmd.Flags().BoolVarP(&portalCmdOpts.asJson, "json", "j", false, "Return results as JSON")
+	portalStatusCmd.Flags().BoolVarP(&portalCmdOpts.asJSON, "json", "j", false, "Return results as JSON")
 
 	errPanic(portalStatusCmd.MarkFlagRequired("apim"))
 	errPanic(portalStatusCmd.MarkFlagRequired("rg"))
@@ -47,18 +47,18 @@ type portalStatusOutput struct {
 }
 
 func doPortalStatus() error {
-	info, err := buildApimInfo(azureApiVersion)
+	info, err := buildApimInfo(azureAPIVersion)
 	if err != nil {
 		return err
 	}
 
-	status, err := getDevportalStatus(info.devPortalUrl)
+	status, err := getDevportalStatus(info.devPortalURL)
 	if err != nil {
 		return err
 	}
 	logging.Logger().Debugf("Portal status: %+v", status)
 
-	isDeployed, err := isDevportalDeployed(info.devPortalUrl)
+	isDeployed, err := isDevportalDeployed(info.devPortalURL)
 	if err != nil {
 		return err
 	}

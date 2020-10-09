@@ -24,7 +24,7 @@ var versionCmd = &cobra.Command{
 }
 
 func init() {
-	versionCmd.Flags().BoolVar(&portalCmdOpts.asJson, "json", false, "Return version as JSON")
+	versionCmd.Flags().BoolVar(&portalCmdOpts.asJSON, "json", false, "Return version as JSON")
 	errPanic(viper.GetViper().BindPFlag("json", versionCmd.Flags().Lookup("json")))
 
 	rootCmd.AddCommand(versionCmd)
